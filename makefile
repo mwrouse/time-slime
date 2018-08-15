@@ -5,7 +5,7 @@ LANGUAGE_FLAGS=-x c
 OUT=timeslime
 
 # Files to compile (for all targets)
-SOURCES=./src/timeslime.c
+SOURCES=./src/*.c ./src/args/*.c
 
 
 
