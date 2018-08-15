@@ -75,7 +75,7 @@ timeslime_date parse_date(char *dateStr)
             {
                 if (tmp < 1000)
                 {
-                    log_error("Invalid year, %d", tmp);
+                    log_error("Invalid year, %d; dates must be in the format YYYY/MM/DD", tmp);
                     date.error = True;
                     return date;
                 }
@@ -87,7 +87,7 @@ timeslime_date parse_date(char *dateStr)
             {
                 if (tmp < 1 || tmp > 12)
                 {
-                    log_error("Invalid month, %d", tmp);
+                    log_error("Invalid month, %d; dates must be in the format YYYY/MM/DD", tmp);
                     date.error = True;
                     return date;
                 }
@@ -99,7 +99,7 @@ timeslime_date parse_date(char *dateStr)
             {
                 if (tmp < 1 || tmp > 31)
                 {
-                    log_error("Invalid day, %d", tmp);
+                    log_error("Invalid day, %d; dates must be in the format YYYY/MM/DD", tmp);
                     date.error = True;
                     return date;
                 }
