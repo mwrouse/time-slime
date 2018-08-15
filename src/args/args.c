@@ -24,7 +24,7 @@ timeslime_args parse_args(int argc, char **argv)
     if (num_args > 0)
     {
         result.action = args[0];
-        if (strcmp(HELP_ARG, args[0]) == 0)
+        if (strcmp(HELP_ACTION, args[0]) == 0)
         {
             result.help = True;
             return result; // Nothing else matters
@@ -66,7 +66,7 @@ timeslime_date parse_date(char *dateStr)
     for (i = 0; i <= strlen(dateStr); i++)
     {
         // - and / are valid separators
-        if (dateStr[i] == '/' || dateStr[i] == '\0')
+        if (dateStr[i] == '/' || dateStr[i] == '-' || dateStr[i] == '\0')
         {
             log_debug("Found Date Separator: %c, read: %s", dateStr[i], running);
             tmp = atoi(running);

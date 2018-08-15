@@ -18,7 +18,9 @@ int main(int argc, char *argv[])
     parsed_args = parse_args(argc, argv);
 
     if (parsed_args.help)
-        printf("Helping\n");
+    {
+        display_help();
+    }
     else
     {
         if (strcmp(parsed_args.action, ADD_ACTION) == 0)
@@ -126,4 +128,37 @@ void perform_report_action(timeslime_args args)
 
 
     log_info("Running report between %s and %s", startDate.str, endDate.str);
+}
+
+
+/* Help Screen */
+void display_help(void)
+{
+    printf("Author: %s\n", AUTHOR);
+    printf("Version: %s\n", PROGRAM_VERSION);
+    printf("%s\n\n\n", DESCRIPTION);
+
+    printf("Usage:\n");
+    printf("\t%s [action] [arguments...]\n\n", PROGRAM_NAME);
+
+    printf("Actions:\n");
+
+    printf("\t%s\t %s\n", ADD_ACTION, ADD_ACTION_DESCRIPTION);
+    printf("\t%s\t %s\n", CLOCK_ACTION, CLOCK_ACTION_DESCRIPTION);
+    printf("\t%s\t %s\n", REPORT_ACTION, REPORT_ACTION_DESCRIPTION);
+    printf("\n");
+
+    printf("\t%s\t %s\n\n", HELP_ACTION, HELP_ACTION_DESCRIPTION);
+
+    printf("\n%s Action Usage:\n", ADD_ACTION);
+    printf("\t%s add (+|-)[0-9]\n", PROGRAM_NAME);
+    printf("\t%s add (+|-)[0-9] YYYY/MM/DD\n\n", PROGRAM_NAME);
+
+    printf("%s Action Usage:\n", CLOCK_ACTION);
+    printf("\t%s clock (in|out)\n\n", PROGRAM_NAME);
+
+    printf("%s Action Usage:\n", REPORT_ACTION);
+    printf("\t%s report YYYY/MM/DDD YYYY/MM/DDD\n", PROGRAM_NAME);
+
+    printf("\n");
 }

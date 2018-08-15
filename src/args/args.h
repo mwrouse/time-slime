@@ -5,9 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../logger.h"
-
-/* Constants */
-#define HELP_ARG    "help"
+#include "../string_literals.h"
 
 
 #define False   0

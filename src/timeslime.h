@@ -11,7 +11,7 @@
 
 #include "args/args.h"
 #include "logger.h"
-#include "commands.h"
+#include "string_literals.h"
 
 
 /* Add to the time sheet */
@@ -22,5 +22,8 @@ void perform_clock_action(timeslime_args args);
 
 /* Show time worked for a period of time */
 void perform_report_action(timeslime_args args);
+
+/* Displays the help screen */
+void display_help(void);
 
 #endif
