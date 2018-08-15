@@ -6,12 +6,15 @@
 
 
 /* ACTIONS */
-#define ADD_ACTION    "add"
-#define CLOCK_ACTION  "clock"
-
+#define ADD_ACTION      "add"
+#define CLOCK_ACTION    "clock"
+#define REPORT_ACTION   "report"
 
 /* Misc. */
-#define TODAY   "TODAY"
+#define TODAY   "Today"
+
+#define CLOCK_IN    "in"
+#define CLOCK_OUT   "out"
 
 
 #endif

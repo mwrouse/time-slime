@@ -17,4 +17,10 @@
 /* Add to the time sheet */
 void perform_add_action(timeslime_args args);
 
+/* Clock In or Out */
+void perform_clock_action(timeslime_args args);
+
+/* Show time worked for a period of time */
+void perform_report_action(timeslime_args args);
+
 #endif

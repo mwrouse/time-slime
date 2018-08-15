@@ -11,3 +11,6 @@ SOURCES=./src/*.c ./src/args/*.c
 
 all:
 	$(CC) $(CFLAGS) $(LANGUAGE_FLAGS) $(SOURCES) -o $(OUT)
+
+debug:
+	$(CC) $(CFLAGS) -D DEBUG $(LANGUAGE_FLAGS) $(SOURCES) -o $(OUT)
