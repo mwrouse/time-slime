@@ -1,21 +1,13 @@
 # Time Slime
-A command line implementation of a time sheet
+![Time Slime](extras/images/Time_Slime.jpg)
+
+Time Slime is a simple command line implementation of a time sheet program.
+Easily add hours to your work log, or use it as a standard time clock.
+
+When it comes time, use it to generate reports on hours worked between two dates.
+
+## Getting Started
 
 
-```
-// Add 5 hours to the time sheet today
-timeslime add 5
+## Usage
 
-// Takes off worked hours from timesheet
-timeslime add -2
-
-// Shows time sheet for a period of time
-timeslime report 8/15/2018 8/31/2018
-
-// Add hours to a specific date
-timeslime add 5 8/20/2018
-
-// Clock in and clock out
-timeslime clock in
-timeslime clock out
-```
