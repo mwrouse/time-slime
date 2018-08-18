@@ -1,0 +1,53 @@
+/**
+ * Time Slime - Command Line Time Sheet
+ *
+ * Authors: Michael Rouse
+ */
+#ifndef __TIME_SLIME_H__
+#define __TIME_SLIME_H__
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+
+/* Datatypes */
+typedef int TIMESLIME_STATUS_t;
+
+/* Constants */
+/* These are used when you want to use the current date */
+#define TIMESLIME_NOW               0, 0, 0
+#define TIMESLIME_CLOCK_IN_NOW      TIMESLIME_NOW, 0, 0
+#define TIMESLIME_CLOCK_OUT_NOW     TIMESLIME_NOW, 0, 0
+
+/* Result Codes */
+#define TIMESLIME_OK                0
+
+#define TIMESLIME_UNKOWN_ERROR      100
+#define TIMESLIME_SQLITE_ERROR      50
+
+#define TIMESLIME_INVALID_YEAR      10
+#define TIMESLIME_INVALID_MONTH     11
+#define TIMESLIME_INVALID_DAY       12
+#define TIMESLIME_INVALID_HOUR      13
+#define TIMESLIME_INVALID_MINUTE    14
+
+
+
+/* Initialize the Time Slime library */
+TIMESLIME_STATUS_t TimeSlime_Initialize(char directory_for_database[]);
+
+/* Safely close out of the Time Slime library */
+TIMESLIME_STATUS_t TimeSlime_Close(void);
+
+/* Add to the Time Slime time sheet */
+TIMESLIME_STATUS_t TimeSlime_Add(int hours, int year, int month, int day);
+
+/* Clock in to the Time Slime time sheet */
+TIMESLIME_STATUS_t TimeSlime_ClockIn(int year, int month, int day, int hour, int minute);
+
+/* Clock out of the Time Slime time sheet */
+TIMESLIME_STATUS_t TimeSlime_ClockOut(int year, int month, int day, int hour, int minute);
+
+
+#endif
