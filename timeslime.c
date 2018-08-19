@@ -30,8 +30,8 @@ static TIMESLIME_STATUS_t _TimeSlime_CreateTables(void);
 static TIMESLIME_STATUS_t _TimeSlime_InsertEntry(TIMESLIME_INTERNAL_ROW_t *row);
 static TIMESLIME_STATUS_t _TimeSlime_UpdateEntry(TIMESLIME_INTERNAL_ROW_t *row);
 static TIMESLIME_STATUS_t _TimeSlime_SelectEntries(int minID, char *whereClause);
-static TIMESLIME_STATUS_t _TimeSlime_VerifyTimestamp(int year, int month, int day, int hour, int minute);
-static TIMESLIME_STATUS_t _TimeSlime_VerifyDate(int year, int month, int day);
+static TIMESLIME_STATUS_t _TimeSlime_VerifyTimestamp(TIMESLIME_DATETIME_t time);
+static TIMESLIME_STATUS_t _TimeSlime_VerifyDate(TIMESLIME_DATE_t date);
 
 static int _TIMESLIME_SQLITE_CALLBACK_WRAPPER(void *ignoreMe, int numColumns, char **columns, char **columnNames);
 
@@ -114,10 +114,10 @@ TIMESLIME_STATUS_t TimeSlime_Close(void)
 /**
  *  Add a set amount of hours to the Time Slime time sheet
  */
-TIMESLIME_STATUS_t TimeSlime_AddHours(float hours, int year, int month, int day)
+TIMESLIME_STATUS_t TimeSlime_AddHours(float hours, TIMESLIME_DATE_t date)
 {
     // Verify parameters
-    TIMESLIME_STATUS_t paramTest = _TimeSlime_VerifyDate(year, month, day);
+    TIMESLIME_STATUS_t paramTest = _TimeSlime_VerifyDate(date);
     if (paramTest != TIMESLIME_OK)
         return paramTest;
 
@@ -127,7 +127,7 @@ TIMESLIME_STATUS_t TimeSlime_AddHours(float hours, int year, int month, int day)
     strcpy(entry.ClockInTime, "NULL");
     strcpy(entry.ClockOutTime, "NULL");
 
-    if ((year == 0) || (month == 0) || (day == 0))
+    if ((date.year == 0) || (date.month == 0) || (date.day == 0))
     {
         // Use current database date
         strcpy(entry.HoursAddedDate, "DATE('now', 'localtime')");
@@ -135,7 +135,7 @@ TIMESLIME_STATUS_t TimeSlime_AddHours(float hours, int year, int month, int day)
     else
     {
         // Use user-specified date
-        sprintf(entry.HoursAddedDate, "strftime('%d-%d-%d')", year, month, day);
+        sprintf(entry.HoursAddedDate, "strftime('%d-%d-%d')", date.year, date.month, date.day);
     }
 
     return _TimeSlime_InsertEntry(&entry);
@@ -144,17 +144,17 @@ TIMESLIME_STATUS_t TimeSlime_AddHours(float hours, int year, int month, int day)
 /**
  *  Clock in to the Time Slime time sheet
  */
-TIMESLIME_STATUS_t TimeSlime_ClockIn(int year, int month, int day, int hour, int minute)
+TIMESLIME_STATUS_t TimeSlime_ClockIn(TIMESLIME_DATETIME_t time)
 {
     TIMESLIME_STATUS_t status;
     // Verify parameters are valid
-    status = _TimeSlime_VerifyTimestamp(year, month, day, hour, minute);
+    status = _TimeSlime_VerifyTimestamp(time);
     if (status != TIMESLIME_OK)
         return status;
 
     // Check if already clocked in
     _TimeSlime_SelectEntries(0, "ClockOutTime IS NULL AND ClockInTime IS NOT NULL");
-    if (number_of_results > 0 )
+    if (number_of_results > 0)
         return TIMESLIME_ALREADY_CLOCKED_IN;
 
     // Create new row to be inserted
@@ -163,7 +163,7 @@ TIMESLIME_STATUS_t TimeSlime_ClockIn(int year, int month, int day, int hour, int
     strcpy(entry.HoursAddedDate, "NULL");
     strcpy(entry.ClockOutTime, "NULL");
 
-    if ((year == 0) || (month == 0) || (day == 0) || (hour == 0) || (minute == 0))
+    if ((time.year == 0) || (time.month == 0) || (time.day == 0) || (time.hour == 0) || (time.minute == 0))
     {
         // Use current database date
         strcpy(entry.ClockInTime, "DATETIME('now', 'localtime')");
@@ -171,7 +171,7 @@ TIMESLIME_STATUS_t TimeSlime_ClockIn(int year, int month, int day, int hour, int
     else
     {
         // Use user-specified date
-        sprintf(entry.ClockInTime, "strftime('%d-%d-%d %d:%d:0')", year, month, day, hour, minute);
+        sprintf(entry.ClockInTime, "strftime('%d-%d-%d %d:%d:0')", time.year, time.month, time.day, time.hour, time.minute);
     }
 
     return _TimeSlime_InsertEntry(&entry);
@@ -180,10 +180,10 @@ TIMESLIME_STATUS_t TimeSlime_ClockIn(int year, int month, int day, int hour, int
 /**
  *  Clock out of the Time Slime time sheet
  */
-TIMESLIME_STATUS_t TimeSlime_ClockOut(int year, int month, int day, int hour, int minute)
+TIMESLIME_STATUS_t TimeSlime_ClockOut(TIMESLIME_DATETIME_t time)
 {
      // Verify parameters are valid
-    TIMESLIME_STATUS_t paramTest = _TimeSlime_VerifyTimestamp(year, month, day, hour, minute);
+    TIMESLIME_STATUS_t paramTest = _TimeSlime_VerifyTimestamp(time);
     if (paramTest != TIMESLIME_OK)
         return paramTest;
 
@@ -199,7 +199,7 @@ TIMESLIME_STATUS_t TimeSlime_ClockOut(int year, int month, int day, int hour, in
     strcpy(tmp, database_results[id]->ClockInTime);
     sprintf(database_results[id]->ClockInTime, "strftime('%s')", tmp);
 
-    if ((year == 0) || (month == 0) || (day == 0) || (hour == 0) || (minute == 0))
+    if ((time.year == 0) || (time.month == 0) || (time.day == 0) || (time.hour == 0) || (time.minute == 0))
     {
         // Use current database date
         strcpy(database_results[id]->ClockOutTime, "DATETIME('now', 'localtime')");
@@ -207,10 +207,55 @@ TIMESLIME_STATUS_t TimeSlime_ClockOut(int year, int month, int day, int hour, in
     else
     {
         // Use user-specified date
-        sprintf(database_results[id]->ClockOutTime, "strftime('%d-%d-%d %d:%d:0')", year, month, day, hour, minute);
+        sprintf(database_results[id]->ClockOutTime, "strftime('%d-%d-%d %d:%d:0')", time.year, time.month, time.day, time.hour, time.minute);
     }
 
     return _TimeSlime_UpdateEntry(database_results[id]);
+}
+
+/**
+ *  Gets the time sheet for a period of time
+ */
+TIMESLIME_STATUS_t TimeSlime_GetTimeSheet(TIMESLIME_DATE_t start, TIMESLIME_DATE_t end)
+{
+    return TIMESLIME_OK;
+}
+
+/**
+ * Converts status to friendly status code (or returns SQLITE error string)
+ */
+char*  TimeSlime_StatusCode(TIMESLIME_STATUS_t status)
+{
+    switch (status)
+    {
+        case TIMESLIME_OK:
+            return "K";
+        case TIMESLIME_UNKOWN_ERROR:
+            return "UKNOWN";
+        case TIMESLIME_INVALID_YEAR:
+            return "INVALID_YEAR";
+        case TIMESLIME_INVALID_MONTH:
+            return "INVALID_MONTH";
+        case TIMESLIME_INVALID_DAY:
+            return "INVALID_DAY";
+        case TIMESLIME_INVALID_HOUR:
+            return "INVALID_HOUR";
+        case TIMESLIME_INVALID_MINUTE:
+            return "INVALID_MINUTE";
+        case TIMESLIME_INVALID_TIMESTAMP:
+            return "INVALID_TIMESTAMP";
+        case TIMESLIME_INVALID_DATE:
+            return "INVALID_DATE";
+        case TIMESLIME_ALREADY_CLOCKED_IN:
+            return "ALREADY_CLOCKED_IN";
+        case TIMESLIME_NOT_CLOCKED_IN:
+            return "NOT_CLOCKED_IN";
+        case TIMESLIME_SQLITE_ERROR:
+            return (char*)sqlite3_errmsg(db);
+        default:
+            return "?";
+    }
+
 }
 
 
@@ -374,16 +419,16 @@ static int _TIMESLIME_SQLITE_CALLBACK_WRAPPER(void *ignoreMe, int numColumns, ch
 /**
  * Used for verifying function parameters
  */
-static TIMESLIME_STATUS_t _TimeSlime_VerifyTimestamp(int year, int month, int day, int hour, int minute)
+static TIMESLIME_STATUS_t _TimeSlime_VerifyTimestamp(TIMESLIME_DATETIME_t time)
 {
-    TIMESLIME_STATUS_t dateResult = _TimeSlime_VerifyDate(year, month, day);
+    TIMESLIME_STATUS_t dateResult = _TimeSlime_VerifyDate((TIMESLIME_DATE_t) { time.year, time.month, time.day });
     if (dateResult != TIMESLIME_OK)
         return dateResult;
 
-    if (hour < 0 || hour > 24)
+    if (time.hour < 0 || time.hour > 24)
         return TIMESLIME_INVALID_HOUR;
 
-    if (minute < 0 || minute > 60)
+    if (time.minute < 0 || time.minute > 60)
         return TIMESLIME_INVALID_MINUTE;
 
     return TIMESLIME_OK;
@@ -392,13 +437,13 @@ static TIMESLIME_STATUS_t _TimeSlime_VerifyTimestamp(int year, int month, int da
 /**
  * Used for verifying function parmameters
  */
-static TIMESLIME_STATUS_t _TimeSlime_VerifyDate(int year, int month, int day)
+static TIMESLIME_STATUS_t _TimeSlime_VerifyDate(TIMESLIME_DATE_t date)
 {
-    if (year < 0 || year > 9999)
+    if (date.year < 0 || date.year > 9999)
         return TIMESLIME_INVALID_YEAR;
-    if (month < 0 || month > 12)
+    if (date.month < 0 || date.month > 12)
         return TIMESLIME_INVALID_MONTH;
-    if (day < 0 || day > 31)
+    if (date.day < 0 || date.day > 31)
         return TIMESLIME_INVALID_DAY;
 
     return TIMESLIME_OK;

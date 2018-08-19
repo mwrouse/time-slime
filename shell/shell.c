@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
         status = TimeSlime_Initialize(base_folder);
         if (status != TIMESLIME_OK)
         {
-            printf("An error occured: %d\n", status);
+            printf("An error occured: %s\n", TimeSlime_StatusCode(status));
             return -1;
         }
 
@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 
         if (status != TIMESLIME_OK)
         {
-            printf("Error: %d\n", status);
+            printf("Error: %s\n", TimeSlime_StatusCode(status));
         }
 
         TimeSlime_Close();
@@ -101,7 +101,7 @@ static void perform_add_action(args_t args)
         date_t parsed = args_parse_date(date);
         if (!parsed.error)
         {
-            status = TimeSlime_AddHours(toAdd, parsed.year, parsed.month, parsed.day);
+            status = TimeSlime_AddHours(toAdd, (TIMESLIME_DATE_t){ parsed.year, parsed.month, parsed.day });
         }
     }
 
@@ -129,10 +129,10 @@ static void perform_clock_action(args_t args)
 
     if (strcmp(direction, CLOCK_IN) == 0)
     {
-        status = TimeSlime_ClockIn(TIMESLIME_CLOCK_IN_NOW);
+        status = TimeSlime_ClockIn(TIMESLIME_TIME_NOW);
     }
     else {
-        status = TimeSlime_ClockOut(TIMESLIME_CLOCK_OUT_NOW);
+        status = TimeSlime_ClockOut(TIMESLIME_TIME_NOW);
     }
 }
 

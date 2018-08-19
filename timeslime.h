@@ -14,12 +14,29 @@
 /* Datatypes */
 typedef int TIMESLIME_STATUS_t;
 
+struct TIMESLIME_DATE_STRUCT
+{
+    int year;
+    int month;
+    int day;
+};
+typedef struct TIMESLIME_DATE_STRUCT TIMESLIME_DATE_t;
+
+struct TIMESLIME_DATETIME_STRUCT
+{
+    int year;
+    int month;
+    int day;
+    int hour;
+    int minute;
+};
+typedef struct TIMESLIME_DATETIME_STRUCT TIMESLIME_DATETIME_t;
+
+
 /* Constants */
 /* These are used when you want to use the current date */
-#define TIMESLIME_DATE_NOW          0, 0, 0
-#define TIMESLIME_TIME_NOW          0, 0
-#define TIMESLIME_CLOCK_IN_NOW      TIMESLIME_DATE_NOW, TIMESLIME_TIME_NOW
-#define TIMESLIME_CLOCK_OUT_NOW     TIMESLIME_DATE_NOW, TIMESLIME_TIME_NOW
+#define TIMESLIME_DATE_NOW         (TIMESLIME_DATE_t){ 0, 0, 0}
+#define TIMESLIME_TIME_NOW         (TIMESLIME_DATETIME_t) { 0, 0, 0, 0, 0 }
 
 #ifndef TIMESLIME_DATABASE_FILE_NAME
 #define TIMESLIME_DATABASE_FILE_NAME    "timeslime.db"
@@ -57,16 +74,19 @@ TIMESLIME_STATUS_t TimeSlime_Initialize(char directory_for_database[]);
 TIMESLIME_STATUS_t TimeSlime_Close(void);
 
 /* Add to the Time Slime time sheet */
-TIMESLIME_STATUS_t TimeSlime_AddHours(float hours, int year, int month, int day);
+TIMESLIME_STATUS_t TimeSlime_AddHours(float hours, TIMESLIME_DATE_t date);
 
 /* Clock in to the Time Slime time sheet */
-TIMESLIME_STATUS_t TimeSlime_ClockIn(int year, int month, int day, int hour, int minute);
+TIMESLIME_STATUS_t TimeSlime_ClockIn(TIMESLIME_DATETIME_t time);
 
 /* Clock out of the Time Slime time sheet */
-TIMESLIME_STATUS_t TimeSlime_ClockOut(int year, int month, int day, int hour, int minute);
+TIMESLIME_STATUS_t TimeSlime_ClockOut(TIMESLIME_DATETIME_t time);
 
 /* Gets the time sheet for a period of time */
-TIMESLIME_STATUS_t TimeSlime_GetTimeSheet(void);
+TIMESLIME_STATUS_t TimeSlime_GetTimeSheet(TIMESLIME_DATE_t start, TIMESLIME_DATE_t end);
+
+/* Converts status to friendly error code (or returns SQLITE error string) */
+char*  TimeSlime_StatusCode(TIMESLIME_STATUS_t status);
 
 
 #endif
