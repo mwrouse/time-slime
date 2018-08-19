@@ -8,8 +8,8 @@ SHELL_OUT = $(BUILD_DIR)/timeslime
 SHELL_SOURCES = shell/shell.c shell/args/args.c
 SHELL_HEADERS = shell/args/args.h
 
-LIBRARY_SOURCES = timeslime.c sqlite3.c
-LIBRARY_HEADERS = timeslime.h sqlite3.h
+LIBRARY_SOURCES = timeslime.c third_party/sqlite3/sqlite3.c
+LIBRARY_HEADERS = timeslime.h third_party/sqlite3/sqlite3.h
 
 MKDIR = mkdir
 

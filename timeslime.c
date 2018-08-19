@@ -4,7 +4,7 @@
  * Authors: Michael Rouse
  */
 #include "timeslime.h"
-#include "sqlite3.h"
+#include "third_party/sqlite3/sqlite3.h"
 
 /* Row result for internal library use */
 struct TIMESLIME_INT_ROW_STRUCT {
