@@ -18,23 +18,25 @@ int main(int argc, char *argv[])
 {
     log_dull("==== Time Slime ====\n")
 
-    char *base_folder = args_get_directory_of_executable(argv[0]);
-    status = TimeSlime_Initialize(base_folder);
-    if (status != TIMESLIME_OK)
-    {
-        printf("An error occured: %d\n", status);
-        return -1;
-    }
-
     // Parse command line arguments
     args_t parsed_args;
     parsed_args = args_parse(argc, argv);
 
     if (parsed_args.help)
     {
-        // display_help();
+        display_help();
     }
     else {
+        // Initialize the TimeSlime library with path for database file
+        char *base_folder = args_get_directory_of_executable(argv[0]);
+        status = TimeSlime_Initialize(base_folder);
+        if (status != TIMESLIME_OK)
+        {
+            printf("An error occured: %d\n", status);
+            return -1;
+        }
+
+
         if (strcmp(parsed_args.action, ADD_ACTION) == 0)
             perform_add_action(parsed_args);
 
@@ -48,12 +50,13 @@ int main(int argc, char *argv[])
         {
             printf("Error: %d\n", status);
         }
+
+        TimeSlime_Close();
+        free(base_folder);
+        base_folder = NULL;
     }
 
-    TimeSlime_Close();
 
-    free(base_folder);
-    base_folder = NULL;
 
     return 0;
 }
@@ -171,7 +174,7 @@ void perform_report_action(timeslime_args args)
 }
 
 
-/* Help Screen *
+/* Help Screen */
 void display_help(void)
 {
     printf("Author: %s\n", AUTHOR);
@@ -202,12 +205,3 @@ void display_help(void)
 
     printf("\n");
 }
-static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
-   int i;
-   for(i = 0; i<argc; i++) {
-      printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
-   }
-   printf("\n");
-   return 0;
-}
-*/
