@@ -20,7 +20,7 @@
 
 
 /* Misc. */
-#define TODAY   "Today"
+#define TODAY   "today"
 
 #define CLOCK_IN    "in"
 #define CLOCK_OUT   "out"

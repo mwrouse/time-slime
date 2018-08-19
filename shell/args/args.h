@@ -4,36 +4,33 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../logger.h"
-#include "../string_literals.h"
 
+#define ARGS_False   0
+#define ARGS_True    1
+typedef char args_bool_t;
 
-#define False   0
-#define True    1
-typedef char bool;
-
-typedef struct _timeslime_args_t {
-    bool help;
+typedef struct _args_t {
+    args_bool_t help;
     char *action;
     char *modifier1;
     char *modifier2;
     char *modifier3;
 
     int error;
-} timeslime_args;
+} args_t;
 
-typedef struct _timeslime_date_t {
-    bool error;
+typedef struct _date_t {
+    args_bool_t error;
     int month;
     int day;
     int year;
     char str[256];
-} timeslime_date;
+} date_t;
 
 /* Parse the command line arguments */
-timeslime_args parse_args(int argc, char **argv);
+args_t args_parse(int argc, char **argv);
 
 /* Parse into a date */
-timeslime_date parse_date(char *date);
+date_t args_parse_date(char *date);
 
 #endif

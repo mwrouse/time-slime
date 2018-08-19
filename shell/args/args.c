@@ -1,7 +1,8 @@
 #include "args.h"
+#include "../string_literals.h"
+#include "../logger.h"
 
-
-timeslime_args parse_args(int argc, char **argv)
+args_t args_parse(int argc, char **argv)
 {
     // Copy the arguments
     char **args = NULL;
@@ -13,8 +14,8 @@ timeslime_args parse_args(int argc, char **argv)
     int num_args = argc - 1; // Adjust because the filename was dropped
 
     // Create parsed args result and set defaults
-    timeslime_args result;
-    result.help = False;
+    args_t result;
+    result.help = ARGS_False;
     result.error = 0;
     result.action = NULL;
     result.modifier1 = NULL;
@@ -26,7 +27,7 @@ timeslime_args parse_args(int argc, char **argv)
         result.action = args[0];
         if (strcmp(HELP_ACTION, args[0]) == 0)
         {
-            result.help = True;
+            result.help = ARGS_True;
             return result; // Nothing else matters
         }
 
@@ -48,12 +49,12 @@ timeslime_args parse_args(int argc, char **argv)
 #define DAY     2
 
 /* Parse a date */
-timeslime_date parse_date(char *dateStr)
+date_t args_parse_date(char *dateStr)
 {
     log_debug("Parsing Date: %s", dateStr);
 
-    timeslime_date date;
-    date.error = False;
+    date_t date;
+    date.error = ARGS_False;
     date.month = 0;
     date.day = 0;
     date.year = 0;
@@ -76,7 +77,7 @@ timeslime_date parse_date(char *dateStr)
                 if (tmp < 1000)
                 {
                     log_error("Invalid year, %d; dates must be in the format YYYY/MM/DD", tmp);
-                    date.error = True;
+                    date.error = ARGS_True;
                     return date;
                 }
 
@@ -88,7 +89,7 @@ timeslime_date parse_date(char *dateStr)
                 if (tmp < 1 || tmp > 12)
                 {
                     log_error("Invalid month, %d; dates must be in the format YYYY/MM/DD", tmp);
-                    date.error = True;
+                    date.error = ARGS_True;
                     return date;
                 }
 
@@ -100,7 +101,7 @@ timeslime_date parse_date(char *dateStr)
                 if (tmp < 1 || tmp > 31)
                 {
                     log_error("Invalid day, %d; dates must be in the format YYYY/MM/DD", tmp);
-                    date.error = True;
+                    date.error = ARGS_True;
                     return date;
                 }
 

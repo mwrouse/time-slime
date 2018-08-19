@@ -53,14 +53,18 @@ TIMESLIME_STATUS_t TimeSlime_Initialize(char directory_for_database[])
     sprintf(database_file_path, "%s\\%s", directory_for_database, "timeslime.db"); // Append the file name
 
     // Create database if it doesn't exist
-    int rc = sqlite3_open(database_file_path, &db);
+    int rc;
+    rc = sqlite3_open(database_file_path, &db);
     if (rc != SQLITE_OK)
+    {
         return TIMESLIME_SQLITE_ERROR;
+    }
 
     // Initialize the results array
     database_results = malloc(TIMESLIME_DEFAULT_RESULT_LIMIT * sizeof(TIMESLIME_INTERNAL_ROW_t*));
     if (database_results == NULL)
         return TIMESLIME_UNKOWN_ERROR;
+
     result_array_size = TIMESLIME_DEFAULT_RESULT_LIMIT;
     int i;
     for (i = 0; i < result_array_size; i++)
@@ -75,8 +79,15 @@ TIMESLIME_STATUS_t TimeSlime_Initialize(char directory_for_database[])
  */
 TIMESLIME_STATUS_t TimeSlime_Close(void)
 {
+    int rc;
     if (db != NULL)
-        sqlite3_close(db);
+    {
+        rc = sqlite3_close(db);
+        if (rc != SQLITE_OK)
+        {
+            printf("SQLITE CLOSING ERROR: %d\n", rc);
+        }
+    }
 
     if (database_file_path != NULL)
     {
@@ -214,7 +225,7 @@ static TIMESLIME_STATUS_t _TimeSlime_CreateTables(void)
     char *sql;
 
     // Create time sheet table
-    sql =   "CREATE TABLE TimeSheet(" \
+    sql =   "CREATE TABLE IF NOT EXISTS TimeSheet(" \
                 "ID INTEGER PRIMARY KEY AUTOINCREMENT," \
                 "HoursAdded REAL NOT NULL DEFAULT 0," \
                 "HoursAddedDate DATE DEFAULT NULL," \
@@ -223,9 +234,9 @@ static TIMESLIME_STATUS_t _TimeSlime_CreateTables(void)
                 "CreationTime DATETIME DEFAULT (DATETIME('now', 'localtime')), " \
                 "LastUpdateTime DATETIME DEFAULT (DATETIME('now', 'localtime'))" \
             "); " \
-            "CREATE INDEX HoursAdded_Index ON TimeSheet (HoursAddedDate);" \
-            "CREATE INDEX ClockIn_Index ON TimeSheet (ClockInTime);" \
-            "CREATE INDEX ClockOut_Index ON TimeSheet (ClockOutTime);";
+            "CREATE INDEX IF NOT EXISTS HoursAdded_Index ON TimeSheet (HoursAddedDate);" \
+            "CREATE INDEX IF NOT EXISTS ClockIn_Index ON TimeSheet (ClockInTime);" \
+            "CREATE INDEX IF NOT EXISTS ClockOut_Index ON TimeSheet (ClockOutTime);";
 
     rc = sqlite3_exec(db, sql, NULL, 0, &errMsg);
     if (rc != SQLITE_OK)

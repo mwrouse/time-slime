@@ -4,66 +4,61 @@
 #include "../timeslime.h"
 #include "logger.h"
 #include "args/args.h"
+#include "string_literals.h"
 
+static TIMESLIME_STATUS_t status;
+
+static void perform_add_action(args_t args);
+static void perform_clock_action(args_t args);
 
 /**
  * Entry point to the command line interface for Time Slime
  */
 int main(int argc, char *argv[])
 {
-    TimeSlime_Initialize("build");
-
-
-
-    return 0;
-}
-
-
-/**
- * Entry point for program, parsed arguments and
- * acts according to the arguments
- *
-int main2(int argc, char *argv[])
-{
-    int i;
-    for (i = 0; i < argc; i++)
-        log_dull(argv[i]);
     log_dull("==== Time Slime ====\n")
 
-    setup_database();
+    status = TimeSlime_Initialize("build");
+    if (status != TIMESLIME_OK)
+    {
+        printf("An error occured: %d\n", status);
+        return -1;
+    }
 
-
-
-
-    timeslime_args parsed_args;
-    parsed_args = parse_args(argc, argv);
+    // Parse command line arguments
+    args_t parsed_args;
+    parsed_args = args_parse(argc, argv);
 
     if (parsed_args.help)
     {
-        display_help();
+        // display_help();
     }
-    else
-    {
+    else {
         if (strcmp(parsed_args.action, ADD_ACTION) == 0)
             perform_add_action(parsed_args);
 
         else if (strcmp(parsed_args.action, CLOCK_ACTION) == 0)
             perform_clock_action(parsed_args);
 
-        else if (strcmp(parsed_args.action, REPORT_ACTION) == 0)
-            perform_report_action(parsed_args);
+        //else if (strcmp(parsed_args.action, REPORT_ACTION) == 0)
+          //  perform_report_action(parsed_args);
+
+        if (status != TIMESLIME_OK)
+        {
+            printf("Error: %d\n", status);
+        }
     }
 
-    sqlite3_close(db);
-    printf("\n");
+    TimeSlime_Close();
+
     return 0;
 }
 
 
 /**
  * Add to the time sheet
- *
-void perform_add_action(timeslime_args args)
+ */
+static void perform_add_action(args_t args)
 {
     if (args.modifier1 == NULL)
     {
@@ -89,11 +84,23 @@ void perform_add_action(timeslime_args args)
 
     // Show message for what is about to happen
     log_info("Adding %.2f hour(s) to the time sheet for %s", toAdd, date);
+
+    if (strcmp(date, TODAY) == 0)
+    {
+        status = TimeSlime_AddHours(toAdd, TIMESLIME_DATE_NOW);
+    }
+    else {
+        date_t parsed = args_parse_date(date);
+        if (!parsed.error)
+        {
+            status = TimeSlime_AddHours(toAdd, parsed.year, parsed.month, parsed.day);
+        }
+    }
+
 }
 
-
-/* Clock in and clock out of the time sheet *
-void perform_clock_action(timeslime_args args)
+/* Clock in and clock out of the time sheet */
+static void perform_clock_action(args_t args)
 {
     if (args.modifier1 == NULL)
     {
@@ -111,6 +118,14 @@ void perform_clock_action(timeslime_args args)
 
     // Show message for what is about to happen
     log_info("Clocking %s", direction);
+
+    if (strcmp(direction, CLOCK_IN) == 0)
+    {
+        status = TimeSlime_ClockIn(TIMESLIME_CLOCK_IN_NOW);
+    }
+    else {
+        status = TimeSlime_ClockOut(TIMESLIME_CLOCK_OUT_NOW);
+    }
 }
 
 /* Show all time worked *
