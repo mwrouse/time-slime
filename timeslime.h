@@ -32,6 +32,11 @@ typedef int TIMESLIME_STATUS_t;
 #define TIMESLIME_INVALID_DAY       12
 #define TIMESLIME_INVALID_HOUR      13
 #define TIMESLIME_INVALID_MINUTE    14
+#define TIMESLIME_INVALID_TIMESTAMP 15
+#define TIMESLIME_INVALID_DATE      16
+
+#define TIMESLIME_ALREADY_CLOCKED_IN    60  /* When you try to clock in without clocking out */
+#define TIMESLIME_NOT_CLOCKED_IN        61 /* When you try to clock out without clocking in */
 
 
 
@@ -52,5 +57,6 @@ TIMESLIME_STATUS_t TimeSlime_ClockOut(int year, int month, int day, int hour, in
 
 /* Gets the time sheet for a period of time */
 TIMESLIME_STATUS_t TimeSlime_GetTimeSheet(void);
+
 
 #endif
