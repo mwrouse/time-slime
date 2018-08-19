@@ -35,7 +35,9 @@ TIMESLIME_STATUS_t TimeSlime_Initialize(char directory_for_database[])
     return _TimeSlime_CreateTables();
 }
 
-/* Safely close out of the Time Slime library */
+/**
+ * Safely close the Time Slime library
+ */
 TIMESLIME_STATUS_t TimeSlime_Close(void)
 {
     if (db != NULL)
@@ -51,8 +53,42 @@ TIMESLIME_STATUS_t TimeSlime_Close(void)
 }
 
 /* Add to the Time Slime time sheet */
-TIMESLIME_STATUS_t TimeSlime_Add(int hours, int year, int month, int day)
+TIMESLIME_STATUS_t TimeSlime_AddHours(float hours, int year, int month, int day)
 {
+    char *errMsg;
+    char sql[1000];
+    int rc;
+
+    if (month < 0 || month > 12)
+        return TIMESLIME_INVALID_MONTH;
+    if (day < 0 || day > 31)
+        return TIMESLIME_INVALID_DAY;
+
+    if ((year == 0) || (month == 0) || (day == 0))
+    {
+        // Use current database date
+        sprintf(sql,    "INSERT INTO TimeSheet " \
+                        "(HoursAdded, HoursAddedDate) " \
+                        "VALUES " \
+                        "(%.2f, DATE('now', 'localtime'))",
+            hours);
+    }
+    else
+    {
+        // Use user-specified date
+        sprintf(sql,    "INSERT INTO TimeSheet " \
+                        "(HoursAdded, HoursAddedDate) " \
+                        "VALUES " \
+                        "(%.2f, '%d/%d/%d')",
+            hours, year, month, day);
+    }
+
+    rc = sqlite3_exec(db, sql, NULL, 0, &errMsg);
+    if (rc != SQLITE_OK)
+    {
+        return TIMESLIME_SQLITE_ERROR;
+    }
+
     return TIMESLIME_OK;
 }
 
@@ -248,7 +284,7 @@ static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
  */
 static TIMESLIME_STATUS_t _TimeSlime_CreateTables(void)
 {
-    char *zErrMsg = 0;
+    char *errMsg = 0;
     int rc;
     char *sql;
 
@@ -256,11 +292,16 @@ static TIMESLIME_STATUS_t _TimeSlime_CreateTables(void)
     sql =   "CREATE TABLE TimeSheet(" \
                 "ID INTEGER PRIMARY KEY AUTOINCREMENT," \
                 "HoursAdded REAL NOT NULL DEFAULT 0," \
+                "HoursAddedDate DATE DEFAULT NULL," \
                 "ClockInTime DATETIME DEFAULT NULL," \
                 "ClockOutTime DATETIME DEFAULT NULL," \
                 "Timestamp DATETIME DEFAULT (DATETIME('now', 'localtime'))" \
-            ")";
-    rc = sqlite3_exec(db, sql, NULL, 0, &zErrMsg);
+            "); " \
+            "CREATE INDEX HoursAdded_Index ON TimeSheet (HoursAddedDate);" \
+            "CREATE INDEX ClockIn_Index ON TimeSheet (ClockInTime);" \
+            "CREATE INDEX ClockOut_Index ON TimeSheet (ClockOutTime);";
+
+    rc = sqlite3_exec(db, sql, NULL, 0, &errMsg);
     if (rc != SQLITE_OK)
     {
         return TIMESLIME_SQLITE_ERROR;

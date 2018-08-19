@@ -13,6 +13,7 @@ int main(int argc, char *argv[])
 {
     TimeSlime_Initialize("build");
 
+    TimeSlime_AddHours(2.3, TIMESLIME_DATE_NOW);
     TimeSlime_Close();
     return 0;
 }
