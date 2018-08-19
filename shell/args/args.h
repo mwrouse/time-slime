@@ -33,4 +33,7 @@ args_t args_parse(int argc, char **argv);
 /* Parse into a date */
 date_t args_parse_date(char *date);
 
+char* args_get_directory_of_executable(char *name);
+
+
 #endif

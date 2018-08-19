@@ -127,3 +127,38 @@ date_t args_parse_date(char *dateStr)
 
     return date;
 }
+
+
+char* args_get_directory_of_executable(char *name)
+{
+    char path[1000];
+    path[0] = '\0';
+    char read_since_last_separator[100];
+    read_since_last_separator[0] = '\0';
+
+    int i;
+    int pos;
+    int len = strlen(name);
+    for (i = 0; i < len; i++)
+    {
+        if (name[i] == '/' || name[i] == '\\')
+        {
+            if (strlen(path) > 0)
+            {
+                pos = strlen(path);
+                path[pos] = '\\';
+                path[pos + 1] = '\0';
+            }
+            strcat(path, read_since_last_separator);
+            read_since_last_separator[0] = '\0';
+        }
+        else {
+            pos = strlen(read_since_last_separator);
+            read_since_last_separator[pos] = name[i];
+            read_since_last_separator[pos + 1] = '\0';
+        }
+    }
+    char *result = malloc(sizeof(path));
+    strcpy(result, path);
+    return result;
+}

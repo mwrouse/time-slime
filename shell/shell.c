@@ -18,7 +18,8 @@ int main(int argc, char *argv[])
 {
     log_dull("==== Time Slime ====\n")
 
-    status = TimeSlime_Initialize("build");
+    char *base_folder = args_get_directory_of_executable(argv[0]);
+    status = TimeSlime_Initialize(base_folder);
     if (status != TIMESLIME_OK)
     {
         printf("An error occured: %d\n", status);
@@ -50,6 +51,9 @@ int main(int argc, char *argv[])
     }
 
     TimeSlime_Close();
+
+    free(base_folder);
+    base_folder = NULL;
 
     return 0;
 }
