@@ -10,6 +10,7 @@ static TIMESLIME_STATUS_t status;
 
 static void perform_add_action(args_t args);
 static void perform_clock_action(args_t args);
+static void display_help(void);
 
 /**
  * Entry point to the command line interface for Time Slime
