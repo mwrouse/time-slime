@@ -6,40 +6,16 @@
 #include "timeslime.h"
 #include "sqlite3.h"
 
-
+/* Variables */
 static sqlite3 *db;
 static char *database_file_path;
 
-/*
 
-void setup_database(void)
-{
-    int rc;
-    rc = sqlite3_open(DATABASE_FILE, &db);
+/* Functions */
+static TIMESLIME_STATUS_t _TimeSlime_CreateTables(void);
 
 
-    printf("Yay!\n");
-
-    char *sql;
-
-    sql = "CREATE TABLE meow(" \
-            "ID INTEGER PRIMARY KEY AUTOINCREMENT," \
-            "StartTime DATETIME NOT NULL," \
-            "EndTime DATETIME, " \
-            "Hours REAL" \
-        ")";
-
-    char *zErrMsg = 0;
-    rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
-if( rc != SQLITE_OK ){
-   fprintf(stderr, "SQL error: %s\n", zErrMsg);
-      sqlite3_free(zErrMsg);
-   } else {
-      fprintf(stdout, "Table created successfully\n");
-   }
-}*/
-
-/*
+/**
  * Initializes the Time Slime library
  */
 TIMESLIME_STATUS_t TimeSlime_Initialize(char directory_for_database[])
@@ -56,7 +32,7 @@ TIMESLIME_STATUS_t TimeSlime_Initialize(char directory_for_database[])
     if (rc != SQLITE_OK)
         return TIMESLIME_SQLITE_ERROR;
 
-    return TIMESLIME_OK;
+    return _TimeSlime_CreateTables();
 }
 
 /* Safely close out of the Time Slime library */
@@ -266,3 +242,28 @@ static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
    return 0;
 }
 */
+
+/**
+ * Creates the SQL tables (only if the file is new)
+ */
+static TIMESLIME_STATUS_t _TimeSlime_CreateTables(void)
+{
+    char *zErrMsg = 0;
+    int rc;
+    char *sql;
+
+    // Create time sheet table
+    sql =   "CREATE TABLE TimeSheet(" \
+                "ID INTEGER PRIMARY KEY AUTOINCREMENT," \
+                "HoursAdded REAL NOT NULL DEFAULT 0," \
+                "ClockInTime DATETIME DEFAULT NULL," \
+                "ClockOutTime DATETIME DEFAULT NULL," \
+                "Timestamp DATETIME DEFAULT (DATETIME('now', 'localtime'))" \
+            ")";
+    rc = sqlite3_exec(db, sql, NULL, 0, &zErrMsg);
+    if (rc != SQLITE_OK)
+    {
+        return TIMESLIME_SQLITE_ERROR;
+    }
+    return TIMESLIME_OK;
+}
