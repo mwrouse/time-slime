@@ -10,9 +10,9 @@
 struct TIMESLIME_INT_ROW_STRUCT {
     int ID;
     float HoursAdded;
-    char HoursAddedDate[30];
-    char ClockInTime[30];
-    char ClockOutTime[30];
+    char HoursAddedDate[TIMESLIME_DATETIME_STR_LENGTH];
+    char ClockInTime[TIMESLIME_DATETIME_STR_LENGTH];
+    char ClockOutTime[TIMESLIME_DATETIME_STR_LENGTH];
 };
 typedef struct TIMESLIME_INT_ROW_STRUCT TIMESLIME_INTERNAL_ROW_t;
 
@@ -20,14 +20,20 @@ typedef struct TIMESLIME_INT_ROW_STRUCT TIMESLIME_INTERNAL_ROW_t;
 /* Variables */
 static sqlite3 *db;
 static char *database_file_path;
+static TIMESLIME_INTERNAL_ROW_t **database_results;
+static int number_of_results;
+static int result_array_size;
 
 
 /* Functions */
 static TIMESLIME_STATUS_t _TimeSlime_CreateTables(void);
 static TIMESLIME_STATUS_t _TimeSlime_InsertEntry(TIMESLIME_INTERNAL_ROW_t *row);
+static TIMESLIME_STATUS_t _TimeSlime_UpdateEntry(TIMESLIME_INTERNAL_ROW_t *row);
+static TIMESLIME_STATUS_t _TimeSlime_SelectEntries(int minID, char *whereClause);
 static TIMESLIME_STATUS_t _TimeSlime_VerifyTimestamp(int year, int month, int day, int hour, int minute);
 static TIMESLIME_STATUS_t _TimeSlime_VerifyDate(int year, int month, int day);
 
+static int _TIMESLIME_SQLITE_CALLBACK_WRAPPER(void *ignoreMe, int numColumns, char **columns, char **columnNames);
 
 
 
@@ -36,6 +42,10 @@ static TIMESLIME_STATUS_t _TimeSlime_VerifyDate(int year, int month, int day);
  */
 TIMESLIME_STATUS_t TimeSlime_Initialize(char directory_for_database[])
 {
+    database_file_path = NULL;
+    db = NULL;
+    database_results = NULL;
+
     // Generate path for database file
     database_file_path = malloc((strlen(directory_for_database) + strlen("\\timeslime.db")) * sizeof(char));
     if (database_file_path == NULL)
@@ -43,10 +53,19 @@ TIMESLIME_STATUS_t TimeSlime_Initialize(char directory_for_database[])
     sprintf(database_file_path, "%s\\%s", directory_for_database, "timeslime.db"); // Append the file name
 
     // Create database if it doesn't exist
-    db = NULL;
     int rc = sqlite3_open(database_file_path, &db);
     if (rc != SQLITE_OK)
         return TIMESLIME_SQLITE_ERROR;
+
+    // Initialize the results array
+    database_results = malloc(TIMESLIME_DEFAULT_RESULT_LIMIT * sizeof(TIMESLIME_INTERNAL_ROW_t*));
+    if (database_results == NULL)
+        return TIMESLIME_UNKOWN_ERROR;
+    result_array_size = TIMESLIME_DEFAULT_RESULT_LIMIT;
+    int i;
+    for (i = 0; i < result_array_size; i++)
+        database_results[i] = NULL;
+
 
     return _TimeSlime_CreateTables();
 }
@@ -63,6 +82,19 @@ TIMESLIME_STATUS_t TimeSlime_Close(void)
     {
         free(database_file_path);
         database_file_path = NULL;
+    }
+
+    if (database_results != NULL)
+    {
+        int i;
+        for (i = 0; i < number_of_results; i++)
+        {
+            free(database_results[i]);
+            database_results[i] = NULL;
+        }
+
+        free(database_results);
+        database_results = NULL;
     }
 
     return TIMESLIME_OK;
@@ -92,10 +124,7 @@ TIMESLIME_STATUS_t TimeSlime_AddHours(float hours, int year, int month, int day)
     else
     {
         // Use user-specified date
-        char tmp[30];
-        sprintf(tmp, "strftime('%d-%d-%d')", year, month, day);
-
-        strcpy(entry.HoursAddedDate, tmp);
+        sprintf(entry.HoursAddedDate, "strftime('%d-%d-%d')", year, month, day);
     }
 
     return _TimeSlime_InsertEntry(&entry);
@@ -106,10 +135,16 @@ TIMESLIME_STATUS_t TimeSlime_AddHours(float hours, int year, int month, int day)
  */
 TIMESLIME_STATUS_t TimeSlime_ClockIn(int year, int month, int day, int hour, int minute)
 {
+    TIMESLIME_STATUS_t status;
     // Verify parameters are valid
-    TIMESLIME_STATUS_t paramTest = _TimeSlime_VerifyTimestamp(year, month, day, hour, minute);
-    if (paramTest != TIMESLIME_OK)
-        return paramTest;
+    status = _TimeSlime_VerifyTimestamp(year, month, day, hour, minute);
+    if (status != TIMESLIME_OK)
+        return status;
+
+    // Check if already clocked in
+    _TimeSlime_SelectEntries(0, "ClockOutTime IS NULL AND ClockInTime IS NOT NULL");
+    if (number_of_results > 0 )
+        return TIMESLIME_ALREADY_CLOCKED_IN;
 
     // Create new row to be inserted
     TIMESLIME_INTERNAL_ROW_t entry;
@@ -125,10 +160,7 @@ TIMESLIME_STATUS_t TimeSlime_ClockIn(int year, int month, int day, int hour, int
     else
     {
         // Use user-specified date
-        char tmp[30];
-        sprintf(tmp, "strftime('%d-%d-%d %d:%d:0')", year, month, day, hour, minute);
-
-        strcpy(entry.ClockInTime, tmp);
+        sprintf(entry.ClockInTime, "strftime('%d-%d-%d %d:%d:0')", year, month, day, hour, minute);
     }
 
     return _TimeSlime_InsertEntry(&entry);
@@ -144,203 +176,33 @@ TIMESLIME_STATUS_t TimeSlime_ClockOut(int year, int month, int day, int hour, in
     if (paramTest != TIMESLIME_OK)
         return paramTest;
 
-    // Create new row to be inserted
-    TIMESLIME_INTERNAL_ROW_t entry;
-    entry.HoursAdded = 0;
-    strcpy(entry.HoursAddedDate, "NULL");
-    strcpy(entry.ClockInTime, "NULL");
+    // Check if already clocked in
+    _TimeSlime_SelectEntries(0, "ClockOutTime IS NULL AND ClockInTime IS NOT NULL");
+    if (number_of_results == 0 )
+        return TIMESLIME_NOT_CLOCKED_IN;
+
+    int id = number_of_results - 1; // Last row item ID
+
+    // Prep for update
+    char tmp[TIMESLIME_DATETIME_STR_LENGTH];
+    strcpy(tmp, database_results[id]->ClockInTime);
+    sprintf(database_results[id]->ClockInTime, "strftime('%s')", tmp);
 
     if ((year == 0) || (month == 0) || (day == 0) || (hour == 0) || (minute == 0))
     {
         // Use current database date
-        strcpy(entry.ClockOutTime, "DATETIME('now', 'localtime')");
+        strcpy(database_results[id]->ClockOutTime, "DATETIME('now', 'localtime')");
     }
     else
     {
         // Use user-specified date
-        char tmp[30];
-        sprintf(tmp, "strftime('%d-%d-%d %d:%d:0')", year, month, day, hour, minute);
-
-        strcpy(entry.ClockOutTime, tmp);
+        sprintf(database_results[id]->ClockOutTime, "strftime('%d-%d-%d %d:%d:0')", year, month, day, hour, minute);
     }
 
-    return _TimeSlime_InsertEntry(&entry);
+    return _TimeSlime_UpdateEntry(database_results[id]);
 }
 
 
-/**
- * Entry point for program, parsed arguments and
- * acts according to the arguments
- *
-int main2(int argc, char *argv[])
-{
-    int i;
-    for (i = 0; i < argc; i++)
-        log_dull(argv[i]);
-    log_dull("==== Time Slime ====\n")
-
-    setup_database();
-
-
-
-
-    timeslime_args parsed_args;
-    parsed_args = parse_args(argc, argv);
-
-    if (parsed_args.help)
-    {
-        display_help();
-    }
-    else
-    {
-        if (strcmp(parsed_args.action, ADD_ACTION) == 0)
-            perform_add_action(parsed_args);
-
-        else if (strcmp(parsed_args.action, CLOCK_ACTION) == 0)
-            perform_clock_action(parsed_args);
-
-        else if (strcmp(parsed_args.action, REPORT_ACTION) == 0)
-            perform_report_action(parsed_args);
-    }
-
-    sqlite3_close(db);
-    printf("\n");
-    return 0;
-}
-
-
-/**
- * Add to the time sheet
- *
-void perform_add_action(timeslime_args args)
-{
-    if (args.modifier1 == NULL)
-    {
-        log_error("'add' action needs at least a second parameter.")
-        return;
-    }
-
-    // Parse argument to determine how long to add
-    float toAdd;
-    toAdd = atof(args.modifier1);
-
-    // Verify range of time to add
-    if (toAdd == 0.0)
-    {
-        log_error("Invalid amount of time to add to timesheet. Must be > 0 or < 0");
-        return;
-    }
-
-    // Get the date to add onto the time sheet
-    char *date = TODAY;
-    if (args.modifier2 != NULL)
-        date = args.modifier2;
-
-    // Show message for what is about to happen
-    log_info("Adding %.2f hour(s) to the time sheet for %s", toAdd, date);
-}
-
-
-/* Clock in and clock out of the time sheet *
-void perform_clock_action(timeslime_args args)
-{
-    if (args.modifier1 == NULL)
-    {
-        log_error("'clock' action needs an additional parameter: 'in' or 'out'")
-        return;
-    }
-
-    char *direction = args.modifier1;
-
-    if (strcmp(direction, CLOCK_IN) != 0 && strcmp(direction, CLOCK_OUT) != 0)
-    {
-        log_error("Invalid parameter on 'clock' action, must be 'in' or 'out'");
-        return;
-    }
-
-    // Show message for what is about to happen
-    log_info("Clocking %s", direction);
-}
-
-/* Show all time worked *
-void perform_report_action(timeslime_args args)
-{
-    if (args.modifier1 == NULL)
-    {
-        log_error("'report' action needs another paramter, the start date");
-        return;
-    }
-
-    if (args.modifier2 == NULL)
-    {
-        log_error("'report' action needs another parameter, the end date");
-        return;
-    }
-
-    timeslime_date startDate = parse_date(args.modifier1);
-    if (startDate.error)
-        return;
-
-    timeslime_date endDate = parse_date(args.modifier2);
-    if (endDate.error)
-        return;
-
-    // Verify that dates are in the correct order
-    if (
-            (endDate.month < startDate.month && endDate.year == startDate.year) || // Same year, but earlier month
-            (endDate.day < startDate.day && endDate.year == startDate.year && endDate.month == startDate.month) || // Same month and year, but earlier day
-            (endDate.year < startDate.year) // Earlier year
-        )
-    {
-        log_error("Dates in wrong order");
-        return;
-    }
-
-
-    log_info("Running report between %s and %s", startDate.str, endDate.str);
-}
-
-
-/* Help Screen *
-void display_help(void)
-{
-    printf("Author: %s\n", AUTHOR);
-    printf("Version: %s\n", PROGRAM_VERSION);
-    printf("%s\n\n\n", DESCRIPTION);
-
-    printf("Usage:\n");
-    printf("\t%s [action] [arguments...]\n\n", PROGRAM_NAME);
-
-    printf("Actions:\n");
-
-    printf("\t%s\t %s\n", ADD_ACTION, ADD_ACTION_DESCRIPTION);
-    printf("\t%s\t %s\n", CLOCK_ACTION, CLOCK_ACTION_DESCRIPTION);
-    printf("\t%s\t %s\n", REPORT_ACTION, REPORT_ACTION_DESCRIPTION);
-    printf("\n");
-
-    printf("\t%s\t %s\n\n", HELP_ACTION, HELP_ACTION_DESCRIPTION);
-
-    printf("\n%s Action Usage:\n", ADD_ACTION);
-    printf("\t%s add (+|-)[0-9]\n", PROGRAM_NAME);
-    printf("\t%s add (+|-)[0-9] YYYY/MM/DD\n\n", PROGRAM_NAME);
-
-    printf("%s Action Usage:\n", CLOCK_ACTION);
-    printf("\t%s clock (in|out)\n\n", PROGRAM_NAME);
-
-    printf("%s Action Usage:\n", REPORT_ACTION);
-    printf("\t%s report YYYY/MM/DDD YYYY/MM/DDD\n", PROGRAM_NAME);
-
-    printf("\n");
-}
-static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
-   int i;
-   for(i = 0; i<argc; i++) {
-      printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
-   }
-   printf("\n");
-   return 0;
-}
-*/
 
 /**
  * Creates the SQL tables (only if the file is new)
@@ -358,7 +220,8 @@ static TIMESLIME_STATUS_t _TimeSlime_CreateTables(void)
                 "HoursAddedDate DATE DEFAULT NULL," \
                 "ClockInTime DATETIME DEFAULT NULL," \
                 "ClockOutTime DATETIME DEFAULT NULL," \
-                "Timestamp DATETIME DEFAULT (DATETIME('now', 'localtime'))" \
+                "CreationTime DATETIME DEFAULT (DATETIME('now', 'localtime')), " \
+                "LastUpdateTime DATETIME DEFAULT (DATETIME('now', 'localtime'))" \
             "); " \
             "CREATE INDEX HoursAdded_Index ON TimeSheet (HoursAddedDate);" \
             "CREATE INDEX ClockIn_Index ON TimeSheet (ClockInTime);" \
@@ -369,6 +232,7 @@ static TIMESLIME_STATUS_t _TimeSlime_CreateTables(void)
     {
         return TIMESLIME_SQLITE_ERROR;
     }
+
     return TIMESLIME_OK;
 }
 
@@ -392,7 +256,6 @@ static TIMESLIME_STATUS_t _TimeSlime_InsertEntry(TIMESLIME_INTERNAL_ROW_t *row)
         row->ClockOutTime
     );
 
-    printf("SQL: %s\n", sql);
     rc = sqlite3_exec(db, sql, NULL, 0, &errMsg);
     if (rc != SQLITE_OK)
     {
@@ -402,6 +265,100 @@ static TIMESLIME_STATUS_t _TimeSlime_InsertEntry(TIMESLIME_INTERNAL_ROW_t *row)
 
     return TIMESLIME_OK;
 }
+
+/**
+ * Updates an entry in the Time Slime time sheet
+ */
+static TIMESLIME_STATUS_t _TimeSlime_UpdateEntry(TIMESLIME_INTERNAL_ROW_t *row)
+{
+    char *errMsg;
+    int rc;
+
+    // Generate the SQL query
+    char sql[1000];
+    sprintf(sql,    "UPDATE TimeSheet " \
+                    "SET HoursAdded=%.2f, HoursAddedDate=%s, ClockInTime=%s, ClockOutTime=%s, LastUpdateTime=DATETIME('now', 'localtime') " \
+                    "WHERE ID = %d",
+        row->HoursAdded,
+        row->HoursAddedDate,
+        row->ClockInTime,
+        row->ClockOutTime,
+        row->ID
+    );
+
+    rc = sqlite3_exec(db, sql, NULL, 0, &errMsg);
+    if (rc != SQLITE_OK)
+    {
+        printf("\nERROR: %s\n", errMsg);
+        return TIMESLIME_SQLITE_ERROR;
+    }
+
+    return TIMESLIME_OK;
+}
+
+/**
+ * Selects data from the database
+ */
+static TIMESLIME_STATUS_t _TimeSlime_SelectEntries(int minID, char *whereClause)
+{
+    number_of_results = 0;
+
+    char sql[1000];
+    sprintf(sql,    "SELECT " \
+                    "ID, HoursAdded, HoursAddedDate, ClockInTime, ClockOutTime " \
+                    "FROM TimeSheet " \
+                    "WHERE ID > %d AND %s " \
+                    "ORDER BY ID ASC",
+                minID,
+                (whereClause == NULL) ? "1=1" : whereClause
+            );
+
+    char *errMsg;
+    if (sqlite3_exec(db, sql, _TIMESLIME_SQLITE_CALLBACK_WRAPPER, 0, &errMsg) != SQLITE_OK)
+    {
+        printf("ERROR: %s", errMsg);
+    }
+
+    return TIMESLIME_OK;
+}
+
+
+/**
+ * Parses the return result from queries
+ */
+static int _TIMESLIME_SQLITE_CALLBACK_WRAPPER(void *ignoreMe, int numColumns, char **columns, char **columnNames)
+{
+    int i = number_of_results; // Current index
+
+    if (database_results[i] == NULL)
+        database_results[i] = malloc(sizeof(TIMESLIME_INTERNAL_ROW_t));
+
+    database_results[i]->ID = atoi(columns[0]);
+    database_results[i]->HoursAdded = atof(columns[1] ? columns[1] : "0");
+    strcpy(database_results[i]->HoursAddedDate, columns[2] ? columns[2] : "NULL");
+    strcpy(database_results[i]->ClockInTime, columns[3] ? columns[3] : "NULL");
+    strcpy(database_results[i]->ClockOutTime,columns[4] ? columns[4] : "NULL");
+
+    number_of_results++;
+
+    // Increase results array if needed
+    if (number_of_results >= result_array_size)
+    {
+        int old_size = result_array_size;
+        result_array_size = result_array_size * 2.5;
+        TIMESLIME_INTERNAL_ROW_t **new_results_pointer = realloc(database_results, result_array_size * sizeof(TIMESLIME_INTERNAL_ROW_t*));
+        if (new_results_pointer != NULL)
+        {
+            database_results = new_results_pointer;
+
+            for (i = old_size; i < result_array_size; i++)
+                database_results[i] = NULL;
+        }
+    }
+
+    return 0;
+}
+
 
 /**
  * Used for verifying function parameters
