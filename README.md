@@ -29,7 +29,9 @@ and change the path to `sqlite3.h` in `timeslime.h` based on where you place the
 
 ## Building
 To build the command line utility, you can just run:
+
 > make
+
 on Windows or Linux.
 
 &nbsp;
