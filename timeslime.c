@@ -4,7 +4,6 @@
  * Authors: Michael Rouse
  */
 #include "timeslime.h"
-#include "third_party/sqlite3/sqlite3.h"
 
 /* Row result for internal library use */
 struct TIMESLIME_INT_ROW_STRUCT {
@@ -321,10 +320,6 @@ char*  TimeSlime_StatusCode(TIMESLIME_STATUS_t status)
             return "INVALID_HOUR";
         case TIMESLIME_INVALID_MINUTE:
             return "INVALID_MINUTE";
-        case TIMESLIME_INVALID_TIMESTAMP:
-            return "INVALID_TIMESTAMP";
-        case TIMESLIME_INVALID_DATE:
-            return "INVALID_DATE";
         case TIMESLIME_ALREADY_CLOCKED_IN:
             return "ALREADY_CLOCKED_IN";
         case TIMESLIME_NOT_CLOCKED_IN:

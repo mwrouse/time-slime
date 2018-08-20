@@ -6,6 +6,8 @@
 #ifndef __TIME_SLIME_H__
 #define __TIME_SLIME_H__
 
+#include "third_party/sqlite3/sqlite3.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,7 +15,7 @@
 /* Constants */
 /* These are used when you want to use the current date */
 #define TIMESLIME_DATE_NOW         (TIMESLIME_DATE_t){ 0, 0, 0}
-#define TIMESLIME_TIME_NOW         (TIMESLIME_DATETIME_t) { 0, 0, 0, 0, 0 }
+#define TIMESLIME_TIME_NOW         (TIMESLIME_DATETIME_t){ 0, 0, 0, 0, 0 }
 
 #ifndef TIMESLIME_DATABASE_FILE_NAME
 #define TIMESLIME_DATABASE_FILE_NAME    "timeslime.db"
@@ -36,8 +38,7 @@
 #define TIMESLIME_INVALID_DAY       12
 #define TIMESLIME_INVALID_HOUR      13
 #define TIMESLIME_INVALID_MINUTE    14
-#define TIMESLIME_INVALID_TIMESTAMP 15
-#define TIMESLIME_INVALID_DATE      16
+
 
 #define TIMESLIME_ALREADY_CLOCKED_IN    60  /* When you try to clock in without clocking out */
 #define TIMESLIME_NOT_CLOCKED_IN        61 /* When you try to clock out without clocking in */
