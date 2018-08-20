@@ -1,11 +1,11 @@
 # **Time Slime**
 [![Time Slime](extras/images/Time_Slime.jpg)](http://scoobydoo.wikia.com/wiki/Time_Slime)
 
-Time Slime is a C library for implementation of a basic time sheet program.
+Time Slime is a [C library](#library-documentation) for implementation of a basic time sheet program.
 
 It uses an SQLITE database to store logs, and allows you to clock in/out as well as add a set number of hours.
 
-There is also a shell interface for using only the library from the terminal.
+There is also a [shell interface](#terminal-usage) for using only the library from the terminal.
 
 &nbsp;
 
@@ -25,6 +25,11 @@ Pointing to your `sqlite3.h` file.
 
 If your project is NOT using SQLITE, then you need to take `third_party/sqlite3/sqlite3.h` and `third_party/sqlite3/sqlite3.c` as well,
 and change the path to `sqlite3.h` in `timeslime.h` based on where you place the files.
+
+## Building
+To build the command line utility, you can just run:
+> make
+on Windows or Linux.
 
 &nbsp;
 
@@ -166,3 +171,23 @@ typedef struct TIMESLIME_REPORT_STRUCT TIMESLIME_REPORT_t;
 &nbsp;
 
 # Terminal Usage
+Once build, if you add the executable (in the `build` folder) to your system `PATH`, you can run it with the following commands:
+
+```shell
+# Add an amount of time to the current date
+> timeslime add [hours]
+
+# Add an amount of time to a specific date
+> timeslime add [hours] [date]
+
+# Clock in
+> timeslime clock in
+
+# Clock out
+> timeslime clock out
+
+# Run a report
+> timeslime report [start-date] [end-date]
+```
+
+> **IMPORTANT**: All dates must be formatted as either `YYYY-MM-DD` or `YYYY/MM/DD`
