@@ -193,7 +193,7 @@ static void perform_report_action(args_t args)
 void display_help(void)
 {
     printf("Author: %s\n", AUTHOR);
-    printf("Version: %s\n", PROGRAM_VERSION);
+    printf("Version: %s\n", TIMESLIME_VERSION_STR);
     printf("%s\n\n\n", DESCRIPTION);
 
     printf("Usage:\n");

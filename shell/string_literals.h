@@ -31,7 +31,6 @@
 #define PROGRAM_NAME    "timeslime"
 #define AUTHOR          "Michael Rouse"
 #define DESCRIPTION     "\nTime Slime is a command line utility to keep \ntrack of hours worked remotely. \nA time sheet in your terminal!"
-#define PROGRAM_VERSION "2018.08.19"
 
 
 #define DATABASE_FILE       "timeslime.db"

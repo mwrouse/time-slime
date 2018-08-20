@@ -118,4 +118,20 @@ char*  TimeSlime_StatusCode(TIMESLIME_STATUS_t status);
 
 #define __TS_QRY_GET_ALL_ENTIRES __TS_QRY_GET_COMPLTED_CLOCK_ENTRIES " OR " __TS_QRY_GET_ADDED_HOURS
 
+
+/* Versioning, do not touch unless increasing the version */
+#define _TO_VERSION_STRING(v) "v"__TO_VERSION_STRING(v)
+#define __TO_VERSION_STRING(v) #v
+
+#ifdef TIMESLIME_VERSION
+#undef TIMESLIME_VERSION
+#endif
+#define TIMESLIME_VERSION       0.8
+
+#ifdef TIMESLIME_VERSION_STR
+#undef TIMESLIME_VERSION_STR
+#endif
+#define TIMESLIME_VERSION_STR   _TO_VERSION_STRING(TIMESLIME_VERSION)
+
+
 #endif

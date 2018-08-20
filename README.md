@@ -174,6 +174,9 @@ typedef struct TIMESLIME_REPORT_STRUCT TIMESLIME_REPORT_t;
 Once build, if you add the executable (in the `build` folder) to your system `PATH`, you can run it with the following commands:
 
 ```shell
+# Show information and command help
+> timeslime help
+
 # Add an amount of time to the current date
 > timeslime add [hours]
 
