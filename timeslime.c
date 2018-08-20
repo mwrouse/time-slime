@@ -290,6 +290,16 @@ TIMESLIME_STATUS_t TimeSlime_GetReport(TIMESLIME_DATE_t start, TIMESLIME_DATE_t 
     return TIMESLIME_OK;
 }
 
+/* Frees memory allocated for report used in report method */
+void TimeSlime_FreeReport(TIMESLIME_REPORT_t **report)
+{
+    if (*report != NULL)
+    {
+        free(*report);
+        *report = NULL;
+    }
+}
+
 /**
  * Converts status to friendly status code (or returns SQLITE error string)
  */

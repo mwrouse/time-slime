@@ -102,8 +102,12 @@ TIMESLIME_STATUS_t TimeSlime_ClockOut(TIMESLIME_DATETIME_t time);
 /* Gets the time sheet for a period of time */
 TIMESLIME_STATUS_t TimeSlime_GetReport(TIMESLIME_DATE_t start, TIMESLIME_DATE_t end, TIMESLIME_REPORT_t **out);
 
+/* Frees memory allocated for report used in report method */
+void TimeSlime_FreeReport(TIMESLIME_REPORT_t **report);
+
 /* Converts status to friendly error code (or returns SQLITE error string) */
 char*  TimeSlime_StatusCode(TIMESLIME_STATUS_t status);
+
 
 
 /* Queries (Do not touch) */
