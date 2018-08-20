@@ -1,4 +1,4 @@
-![Time Slime][time-slime-logo]
+[![Time Slime][time-slime-logo]](#)
 
 [![Time Slime - Scooby Doo Villain][time-slime-villain]](http://scoobydoo.wikia.com/wiki/Time_Slime)
 
