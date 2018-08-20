@@ -10,31 +10,36 @@
 struct TIMESLIME_INT_ROW_STRUCT {
     int ID;
     float HoursAdded;
+    float TotalHours;
     char HoursAddedDate[TIMESLIME_DATETIME_STR_LENGTH];
     char ClockInTime[TIMESLIME_DATETIME_STR_LENGTH];
     char ClockOutTime[TIMESLIME_DATETIME_STR_LENGTH];
+    char TimeSheetDate[TIMESLIME_DATETIME_STR_LENGTH];
 };
 typedef struct TIMESLIME_INT_ROW_STRUCT TIMESLIME_INTERNAL_ROW_t;
 
 
 /* Variables */
 static sqlite3 *db;
+static char *db_error;
 static char *database_file_path;
 static TIMESLIME_INTERNAL_ROW_t **database_results;
 static int number_of_results;
 static int result_array_size;
-
 
 /* Functions */
 static TIMESLIME_STATUS_t _TimeSlime_CreateTables(void);
 static TIMESLIME_STATUS_t _TimeSlime_InsertEntry(TIMESLIME_INTERNAL_ROW_t *row);
 static TIMESLIME_STATUS_t _TimeSlime_UpdateEntry(TIMESLIME_INTERNAL_ROW_t *row);
 static TIMESLIME_STATUS_t _TimeSlime_SelectEntries(int minID, char *whereClause);
+static TIMESLIME_STATUS_t _TimeSlime_ExecuteQuery(char *sql, int useCallback);
 static TIMESLIME_STATUS_t _TimeSlime_VerifyTimestamp(TIMESLIME_DATETIME_t time);
 static TIMESLIME_STATUS_t _TimeSlime_VerifyDate(TIMESLIME_DATE_t date);
 
 static int _TIMESLIME_SQLITE_CALLBACK_WRAPPER(void *ignoreMe, int numColumns, char **columns, char **columnNames);
 
+static char* _TimeSlime_Time2Str(TIMESLIME_DATETIME_t time);
+static char* _TimeSlime_Date2Str(TIMESLIME_DATE_t date);
 
 
 /**
@@ -61,7 +66,7 @@ TIMESLIME_STATUS_t TimeSlime_Initialize(char directory_for_database[])
     }
 
     // Initialize the results array
-    database_results = malloc(TIMESLIME_DEFAULT_RESULT_LIMIT * sizeof(TIMESLIME_INTERNAL_ROW_t*));
+    database_results = (TIMESLIME_INTERNAL_ROW_t**)malloc(TIMESLIME_DEFAULT_RESULT_LIMIT * sizeof(TIMESLIME_INTERNAL_ROW_t*));
     if (database_results == NULL)
         return TIMESLIME_UNKOWN_ERROR;
 
@@ -135,7 +140,9 @@ TIMESLIME_STATUS_t TimeSlime_AddHours(float hours, TIMESLIME_DATE_t date)
     else
     {
         // Use user-specified date
-        sprintf(entry.HoursAddedDate, "strftime('%d-%d-%d')", date.year, date.month, date.day);
+        char *dateStr = _TimeSlime_Date2Str(date);
+        strcpy(entry.HoursAddedDate, dateStr);
+        free(dateStr);
     }
 
     return _TimeSlime_InsertEntry(&entry);
@@ -153,7 +160,7 @@ TIMESLIME_STATUS_t TimeSlime_ClockIn(TIMESLIME_DATETIME_t time)
         return status;
 
     // Check if already clocked in
-    _TimeSlime_SelectEntries(0, "ClockOutTime IS NULL AND ClockInTime IS NOT NULL");
+    _TimeSlime_SelectEntries(0, __TS_QRY_GET_PARTIAL_CLOCK_ENTRIES);
     if (number_of_results > 0)
         return TIMESLIME_ALREADY_CLOCKED_IN;
 
@@ -171,7 +178,9 @@ TIMESLIME_STATUS_t TimeSlime_ClockIn(TIMESLIME_DATETIME_t time)
     else
     {
         // Use user-specified date
-        sprintf(entry.ClockInTime, "strftime('%d-%d-%d %d:%d:0')", time.year, time.month, time.day, time.hour, time.minute);
+        char *timeStr = _TimeSlime_Time2Str(time);
+        strcpy(entry.ClockInTime, timeStr);
+        free(timeStr);
     }
 
     return _TimeSlime_InsertEntry(&entry);
@@ -188,7 +197,7 @@ TIMESLIME_STATUS_t TimeSlime_ClockOut(TIMESLIME_DATETIME_t time)
         return paramTest;
 
     // Check if already clocked in
-    _TimeSlime_SelectEntries(0, "ClockOutTime IS NULL AND ClockInTime IS NOT NULL");
+    _TimeSlime_SelectEntries(0, __TS_QRY_GET_PARTIAL_CLOCK_ENTRIES);
     if (number_of_results == 0 )
         return TIMESLIME_NOT_CLOCKED_IN;
 
@@ -207,7 +216,9 @@ TIMESLIME_STATUS_t TimeSlime_ClockOut(TIMESLIME_DATETIME_t time)
     else
     {
         // Use user-specified date
-        sprintf(database_results[id]->ClockOutTime, "strftime('%d-%d-%d %d:%d:0')", time.year, time.month, time.day, time.hour, time.minute);
+        char *timeStr = _TimeSlime_Time2Str(time);
+        sprintf(database_results[id]->ClockOutTime, "strftime('%s')", timeStr);
+        free(timeStr);
     }
 
     return _TimeSlime_UpdateEntry(database_results[id]);
@@ -216,8 +227,66 @@ TIMESLIME_STATUS_t TimeSlime_ClockOut(TIMESLIME_DATETIME_t time)
 /**
  *  Gets the time sheet for a period of time
  */
-TIMESLIME_STATUS_t TimeSlime_GetTimeSheet(TIMESLIME_DATE_t start, TIMESLIME_DATE_t end)
+TIMESLIME_STATUS_t TimeSlime_GetReport(TIMESLIME_DATE_t start, TIMESLIME_DATE_t end, TIMESLIME_REPORT_t **out)
 {
+    int i;
+    TIMESLIME_STATUS_t paramTest;
+    char sql[1000];
+
+    *out = NULL;
+
+    // Test parameters and make sure they are valid dates
+    paramTest = _TimeSlime_VerifyDate(start);
+    if (paramTest != TIMESLIME_OK)
+        return paramTest;
+
+    paramTest = _TimeSlime_VerifyDate(end);
+    if (paramTest != TIMESLIME_OK)
+        return paramTest;
+
+    char *startDate = _TimeSlime_Date2Str(start);
+    char *endDate = _TimeSlime_Date2Str(end);
+
+    // Get sum of all hours based on day in the date range
+    // All we care about is the TotalHours and TimeSheetDate columns
+    sprintf(sql, "SELECT " \
+                    "ID, HoursAdded, HoursAddedDate, ClockInTime, ClockOutTime, " \
+                    "SUM(case when HoursAdded <> 0.0 then HoursAdded else ((JULIANDAY(ClockOutTime) - JULIANDAY(ClockInTime)) * 24) end) AS TotalHours, " \
+                    "case when HoursAddedDate IS NOT NULL then date(HoursAddedDate) else date(ClockInTime) end AS TimeSheetDate " \
+                "FROM TimeSheet " \
+                "WHERE (%s) AND (TimeSheetDate >= date('%s') AND TimeSheetDate <= date('%s')) " \
+                "GROUP BY TimeSheetDate " \
+                "ORDER BY TimeSheetDate ASC",
+            __TS_QRY_GET_ALL_ENTIRES,
+            startDate,
+            endDate
+        );
+
+    free(startDate);
+    startDate = NULL;
+    free(endDate);
+    endDate = NULL;
+
+    number_of_results = 0;
+    TIMESLIME_STATUS_t result = _TimeSlime_ExecuteQuery(sql, 1);
+    if (result != TIMESLIME_OK)
+        return result;
+
+    // Generate report
+    TIMESLIME_REPORT_t *report = (TIMESLIME_REPORT_t*)malloc(sizeof(TIMESLIME_REPORT_t) + (number_of_results * sizeof(TIMESLIME_REPORT_ENTRY_t)));
+    if (report == NULL)
+        return TIMESLIME_UNKOWN_ERROR;
+
+    report->NumberOfEntries = number_of_results;
+    for (i = 0; i < number_of_results; i++)
+    {
+        // Build report entries
+        report->Entries[i].Hours = database_results[i]->TotalHours;
+        strcpy(report->Entries[i].Date, database_results[i]->TimeSheetDate);
+    }
+
+    *out = report;
+
     return TIMESLIME_OK;
 }
 
@@ -250,8 +319,10 @@ char*  TimeSlime_StatusCode(TIMESLIME_STATUS_t status)
             return "ALREADY_CLOCKED_IN";
         case TIMESLIME_NOT_CLOCKED_IN:
             return "NOT_CLOCKED_IN";
+        case TIMESLIME_NO_ENTIRES:
+            return "NO_TIMESHEET_ENTRIES";
         case TIMESLIME_SQLITE_ERROR:
-            return (char*)sqlite3_errmsg(db);
+            return db_error;
         default:
             return "?";
     }
@@ -260,17 +331,17 @@ char*  TimeSlime_StatusCode(TIMESLIME_STATUS_t status)
 
 
 
+
+
+
+
 /**
  * Creates the SQL tables (only if the file is new)
  */
 static TIMESLIME_STATUS_t _TimeSlime_CreateTables(void)
 {
-    char *errMsg = 0;
-    int rc;
-    char *sql;
-
     // Create time sheet table
-    sql =   "CREATE TABLE IF NOT EXISTS TimeSheet(" \
+    char *sql =   "CREATE TABLE IF NOT EXISTS TimeSheet(" \
                 "ID INTEGER PRIMARY KEY AUTOINCREMENT," \
                 "HoursAdded REAL NOT NULL DEFAULT 0," \
                 "HoursAddedDate DATE DEFAULT NULL," \
@@ -283,13 +354,7 @@ static TIMESLIME_STATUS_t _TimeSlime_CreateTables(void)
             "CREATE INDEX IF NOT EXISTS ClockIn_Index ON TimeSheet (ClockInTime);" \
             "CREATE INDEX IF NOT EXISTS ClockOut_Index ON TimeSheet (ClockOutTime);";
 
-    rc = sqlite3_exec(db, sql, NULL, 0, &errMsg);
-    if (rc != SQLITE_OK)
-    {
-        return TIMESLIME_SQLITE_ERROR;
-    }
-
-    return TIMESLIME_OK;
+    return _TimeSlime_ExecuteQuery(sql, 0);
 }
 
 /**
@@ -297,9 +362,6 @@ static TIMESLIME_STATUS_t _TimeSlime_CreateTables(void)
  */
 static TIMESLIME_STATUS_t _TimeSlime_InsertEntry(TIMESLIME_INTERNAL_ROW_t *row)
 {
-    char *errMsg;
-    int rc;
-
     // Generate the SQL query
     char sql[1000];
     sprintf(sql,    "INSERT INTO TimeSheet " \
@@ -312,14 +374,7 @@ static TIMESLIME_STATUS_t _TimeSlime_InsertEntry(TIMESLIME_INTERNAL_ROW_t *row)
         row->ClockOutTime
     );
 
-    rc = sqlite3_exec(db, sql, NULL, 0, &errMsg);
-    if (rc != SQLITE_OK)
-    {
-        printf("\nERROR: %s\n", errMsg);
-        return TIMESLIME_SQLITE_ERROR;
-    }
-
-    return TIMESLIME_OK;
+    return _TimeSlime_ExecuteQuery(sql, 0);
 }
 
 /**
@@ -327,9 +382,6 @@ static TIMESLIME_STATUS_t _TimeSlime_InsertEntry(TIMESLIME_INTERNAL_ROW_t *row)
  */
 static TIMESLIME_STATUS_t _TimeSlime_UpdateEntry(TIMESLIME_INTERNAL_ROW_t *row)
 {
-    char *errMsg;
-    int rc;
-
     // Generate the SQL query
     char sql[1000];
     sprintf(sql,    "UPDATE TimeSheet " \
@@ -342,14 +394,7 @@ static TIMESLIME_STATUS_t _TimeSlime_UpdateEntry(TIMESLIME_INTERNAL_ROW_t *row)
         row->ID
     );
 
-    rc = sqlite3_exec(db, sql, NULL, 0, &errMsg);
-    if (rc != SQLITE_OK)
-    {
-        printf("\nERROR: %s\n", errMsg);
-        return TIMESLIME_SQLITE_ERROR;
-    }
-
-    return TIMESLIME_OK;
+    return _TimeSlime_ExecuteQuery(sql, 0);
 }
 
 /**
@@ -361,7 +406,9 @@ static TIMESLIME_STATUS_t _TimeSlime_SelectEntries(int minID, char *whereClause)
 
     char sql[1000];
     sprintf(sql,    "SELECT " \
-                    "ID, HoursAdded, HoursAddedDate, ClockInTime, ClockOutTime " \
+                    "ID, HoursAdded, HoursAddedDate, ClockInTime, ClockOutTime, " \
+                    "case when HoursAdded <> 0.0 then HoursAdded else ((JULIANDAY(ClockOutTime) - JULIANDAY(ClockInTime)) * 24) end AS TotalHours, " \
+                    "case when HoursAddedDate IS NOT NULL then date(HoursAddedDate) else date(ClockInTime) end AS TimeSheetDate " \
                     "FROM TimeSheet " \
                     "WHERE ID > %d AND %s " \
                     "ORDER BY ID ASC",
@@ -369,11 +416,16 @@ static TIMESLIME_STATUS_t _TimeSlime_SelectEntries(int minID, char *whereClause)
                 (whereClause == NULL) ? "1=1" : whereClause
             );
 
-    char *errMsg;
-    if (sqlite3_exec(db, sql, _TIMESLIME_SQLITE_CALLBACK_WRAPPER, 0, &errMsg) != SQLITE_OK)
-    {
-        printf("ERROR: %s", errMsg);
-    }
+    return _TimeSlime_ExecuteQuery(sql, 1);
+}
+
+/**
+ * Executes a SQLITE query
+ */
+static TIMESLIME_STATUS_t _TimeSlime_ExecuteQuery(char *sql, int useCallback)
+{
+    if (sqlite3_exec(db, sql, (useCallback) ? _TIMESLIME_SQLITE_CALLBACK_WRAPPER : NULL, 0, &db_error) != SQLITE_OK)
+        return TIMESLIME_SQLITE_ERROR;
 
     return TIMESLIME_OK;
 }
@@ -387,13 +439,15 @@ static int _TIMESLIME_SQLITE_CALLBACK_WRAPPER(void *ignoreMe, int numColumns, ch
     int i = number_of_results; // Current index
 
     if (database_results[i] == NULL)
-        database_results[i] = malloc(sizeof(TIMESLIME_INTERNAL_ROW_t));
+        database_results[i] = (TIMESLIME_INTERNAL_ROW_t*)malloc(sizeof(TIMESLIME_INTERNAL_ROW_t));
 
     database_results[i]->ID = atoi(columns[0]);
     database_results[i]->HoursAdded = atof(columns[1] ? columns[1] : "0");
+    database_results[i]->TotalHours = atof(columns[5] ? columns[5] : "0");
     strcpy(database_results[i]->HoursAddedDate, columns[2] ? columns[2] : "NULL");
     strcpy(database_results[i]->ClockInTime, columns[3] ? columns[3] : "NULL");
-    strcpy(database_results[i]->ClockOutTime,columns[4] ? columns[4] : "NULL");
+    strcpy(database_results[i]->ClockOutTime, columns[4] ? columns[4] : "NULL");
+    strcpy(database_results[i]->TimeSheetDate, columns[6] ? columns[6] : "NULL");
 
     number_of_results++;
 
@@ -402,7 +456,7 @@ static int _TIMESLIME_SQLITE_CALLBACK_WRAPPER(void *ignoreMe, int numColumns, ch
     {
         int old_size = result_array_size;
         result_array_size = result_array_size * 2.5;
-        TIMESLIME_INTERNAL_ROW_t **new_results_pointer = realloc(database_results, result_array_size * sizeof(TIMESLIME_INTERNAL_ROW_t*));
+        TIMESLIME_INTERNAL_ROW_t **new_results_pointer = (TIMESLIME_INTERNAL_ROW_t**)realloc(database_results, result_array_size * sizeof(TIMESLIME_INTERNAL_ROW_t*));
         if (new_results_pointer != NULL)
         {
             database_results = new_results_pointer;
@@ -447,4 +501,20 @@ static TIMESLIME_STATUS_t _TimeSlime_VerifyDate(TIMESLIME_DATE_t date)
         return TIMESLIME_INVALID_DAY;
 
     return TIMESLIME_OK;
+}
+
+/* Convert Structs to strings */
+static char* _TimeSlime_Time2Str(TIMESLIME_DATETIME_t time)
+{
+    char *result = (char*)malloc(TIMESLIME_DATETIME_STR_LENGTH * sizeof(char));
+    sprintf(result, "%04d-%02d-%02d %02d:%02d:0", time.year, time.month, time.day, time.hour, time.minute);
+    return result;
+}
+
+static char* _TimeSlime_Date2Str(TIMESLIME_DATE_t date)
+{
+    char *result = (char*)malloc(TIMESLIME_DATETIME_STR_LENGTH * sizeof(char));
+    sprintf(result, "%04d-%02d-%02d", date.year, date.month, date.day);
+
+    return result;
 }

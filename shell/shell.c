@@ -10,6 +10,7 @@ static TIMESLIME_STATUS_t status;
 
 static void perform_add_action(args_t args);
 static void perform_clock_action(args_t args);
+static void perform_report_action(args_t args);
 static void display_help(void);
 
 /**
@@ -44,8 +45,8 @@ int main(int argc, char *argv[])
         else if (strcmp(parsed_args.action, CLOCK_ACTION) == 0)
             perform_clock_action(parsed_args);
 
-        //else if (strcmp(parsed_args.action, REPORT_ACTION) == 0)
-          //  perform_report_action(parsed_args);
+        else if (strcmp(parsed_args.action, REPORT_ACTION) == 0)
+            perform_report_action(parsed_args);
 
         if (status != TIMESLIME_OK)
         {
@@ -136,8 +137,8 @@ static void perform_clock_action(args_t args)
     }
 }
 
-/* Show all time worked *
-void perform_report_action(timeslime_args args)
+/* Show all time worked */
+static void perform_report_action(args_t args)
 {
     if (args.modifier1 == NULL)
     {
@@ -151,11 +152,11 @@ void perform_report_action(timeslime_args args)
         return;
     }
 
-    timeslime_date startDate = parse_date(args.modifier1);
+    date_t startDate = args_parse_date(args.modifier1);
     if (startDate.error)
         return;
 
-    timeslime_date endDate = parse_date(args.modifier2);
+    date_t endDate = args_parse_date(args.modifier2);
     if (endDate.error)
         return;
 
@@ -172,6 +173,18 @@ void perform_report_action(timeslime_args args)
 
 
     log_info("Running report between %s and %s", startDate.str, endDate.str);
+
+    TIMESLIME_DATE_t start = { startDate.year, startDate.month, startDate.day };
+    TIMESLIME_DATE_t end = { endDate.year, endDate.month, endDate.day };
+    TIMESLIME_REPORT_t *report;
+    status = TimeSlime_GetReport(start, end, &report);
+
+    int i;
+    for (i = 0; i < report->NumberOfEntries; i++)
+    {
+        printf("%s: %0.2f\n", report->Entries[i].Date, report->Entries[i].Hours);
+    }
+
 }
 
 

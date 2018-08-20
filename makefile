@@ -27,14 +27,14 @@ debug: CC_FLAGS += -DDEBUG
 debug: all
 
 
-build_executable: prep $(LIBRARY_SOURCES) $(LIBRARY_HEADERS) $(SHELL_SOURCES)
+build_executable: $(LIBRARY_SOURCES) $(LIBRARY_HEADERS) $(SHELL_SOURCES)
 	@$(CC) $(CC_FLAGS) $(LIBRARY_SOURCES) $(SHELL_SOURCES) -o $(SHELL_OUT)
 
 
-prep: clean
+prep:
 	@$(MKDIR) $(BUILD_DIR)
 
 
 clean: clean_all
 clean_all:
-	@$(RMDIR) $(BUILD_DIR)
+	@$(RMDIR) $(SHELL_OUT)
