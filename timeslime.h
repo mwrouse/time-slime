@@ -39,6 +39,8 @@
 #define TIMESLIME_INVALID_HOUR      13
 #define TIMESLIME_INVALID_MINUTE    14
 
+#define TIMESLIME_NOT_INITIALIZED   99
+
 
 #define TIMESLIME_ALREADY_CLOCKED_IN    60  /* When you try to clock in without clocking out */
 #define TIMESLIME_NOT_CLOCKED_IN        61 /* When you try to clock out without clocking in */

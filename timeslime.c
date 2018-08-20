@@ -25,6 +25,7 @@ static char *database_file_path;
 static TIMESLIME_INTERNAL_ROW_t **database_results;
 static int number_of_results;
 static int result_array_size;
+static int is_initialized;
 
 /* Functions */
 static TIMESLIME_STATUS_t _TimeSlime_CreateTables(void);
@@ -49,6 +50,8 @@ TIMESLIME_STATUS_t TimeSlime_Initialize(char directory_for_database[])
     database_file_path = NULL;
     db = NULL;
     database_results = NULL;
+
+    is_initialized = 1;
 
     // Generate path for database file
     database_file_path = malloc((strlen(directory_for_database) + 1 + strlen(TIMESLIME_DATABASE_FILE_NAME)) * sizeof(char)); /* + 1 for the slash */
@@ -83,6 +86,9 @@ TIMESLIME_STATUS_t TimeSlime_Initialize(char directory_for_database[])
  */
 TIMESLIME_STATUS_t TimeSlime_Close(void)
 {
+    if (!is_initialized)
+        return TIMESLIME_NOT_INITIALIZED;
+
     int rc;
     if (db != NULL)
     {
@@ -120,6 +126,9 @@ TIMESLIME_STATUS_t TimeSlime_Close(void)
  */
 TIMESLIME_STATUS_t TimeSlime_AddHours(float hours, TIMESLIME_DATE_t date)
 {
+    if (!is_initialized)
+        return TIMESLIME_NOT_INITIALIZED;
+
     // Verify parameters
     TIMESLIME_STATUS_t paramTest = _TimeSlime_VerifyDate(date);
     if (paramTest != TIMESLIME_OK)
@@ -152,6 +161,9 @@ TIMESLIME_STATUS_t TimeSlime_AddHours(float hours, TIMESLIME_DATE_t date)
  */
 TIMESLIME_STATUS_t TimeSlime_ClockIn(TIMESLIME_DATETIME_t time)
 {
+    if (!is_initialized)
+        return TIMESLIME_NOT_INITIALIZED;
+
     TIMESLIME_STATUS_t status;
     // Verify parameters are valid
     status = _TimeSlime_VerifyTimestamp(time);
@@ -190,7 +202,10 @@ TIMESLIME_STATUS_t TimeSlime_ClockIn(TIMESLIME_DATETIME_t time)
  */
 TIMESLIME_STATUS_t TimeSlime_ClockOut(TIMESLIME_DATETIME_t time)
 {
-     // Verify parameters are valid
+    if (!is_initialized)
+        return TIMESLIME_NOT_INITIALIZED;
+
+    // Verify parameters are valid
     TIMESLIME_STATUS_t paramTest = _TimeSlime_VerifyTimestamp(time);
     if (paramTest != TIMESLIME_OK)
         return paramTest;
@@ -228,6 +243,9 @@ TIMESLIME_STATUS_t TimeSlime_ClockOut(TIMESLIME_DATETIME_t time)
  */
 TIMESLIME_STATUS_t TimeSlime_GetReport(TIMESLIME_DATE_t start, TIMESLIME_DATE_t end, TIMESLIME_REPORT_t **out)
 {
+    if (!is_initialized)
+        return TIMESLIME_NOT_INITIALIZED;
+
     int i;
     TIMESLIME_STATUS_t paramTest;
     char sql[1000];
@@ -326,8 +344,11 @@ char*  TimeSlime_StatusCode(TIMESLIME_STATUS_t status)
             return "NOT_CLOCKED_IN";
         case TIMESLIME_NO_ENTIRES:
             return "NO_TIMESHEET_ENTRIES";
+        case TIMESLIME_NOT_INITIALIZED:
+            return "NOT_INITIALIZED";
         case TIMESLIME_SQLITE_ERROR:
             return db_error;
+
         default:
             return "?";
     }

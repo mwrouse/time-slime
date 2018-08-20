@@ -73,6 +73,8 @@ char*  TimeSlime_StatusCode(TIMESLIME_STATUS_t status);
 |`TIMESLIME_ALREADY_CLOCKED_IN`|Unable to clock in since a clock out action has not been performed|
 |`TIMESLIME_NOT_CLOCKED_IN`|Unable to clock out since a clock in action has not been performed|
 |`TIMESLIME_NO_ENTIRES`|No time sheet entries were found for a given date range|
+|`TIMESLIME_NOT_INITIALIZED`|`TimeSlime_Initialize(char[])` has not been called yet|
+
 
 If you want to get a string key that represents a status code,
 use the `TimeSlime_StatusCode(TIMESLIME_STATUS_t)` method, and pass in the status code. A string will be returned.
