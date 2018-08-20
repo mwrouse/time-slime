@@ -1,5 +1,5 @@
-# **Time Slime**
-[![Time Slime](extras/images/Time_Slime.jpg)](http://scoobydoo.wikia.com/wiki/Time_Slime)
+![Time Slime][time-slime-logo]
+[![Time Slime - Scooby Doo Villain][time-slime-villain]](http://scoobydoo.wikia.com/wiki/Time_Slime)
 
 Time Slime is a [C library](#library-documentation) for implementation of a basic time sheet program.
 
@@ -194,3 +194,14 @@ Once build, if you add the executable (in the `build` folder) to your system `PA
 ```
 
 > **IMPORTANT**: All dates must be formatted as either `YYYY-MM-DD` or `YYYY/MM/DD`
+
+
+&nbsp;
+
+&nbsp;
+
+Font used in logo is [*Liquidism*](https://www.dafont.com/liquidism.font?fpp=50)
+
+
+[time-slime-logo]: extras/images/logo.png
+[time-slime-villain]: extras/images/Time_Slime.jpg
