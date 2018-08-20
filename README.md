@@ -103,6 +103,8 @@ will generate a report between the `start` and `end` dates.
 
 The result will be placed in the `TIMESLIME_REPORT_t` pointer, and this needs to be passed a pointer to that pointer.
 
+When you are done, use `TimeSlime_FreeReport(TIMESLIME_REPORT_t**)` to clear allocated memory.
+
 [See more about `TIMESLIME_DATE_t` and `TIMESLIME_REPORT_t`](#library-datatypes).
 
 &nbsp;
