@@ -85,14 +85,14 @@ This is where the `TimeSlime_AddHours(float, TIMESLIME_DATE_t)` functions comes 
 
 The function accepts a `float`, which is the number of hours worked. Then a `TIMESLIME_DATE_t` struct, which is the date to add the hours to.
 
-[See more about `TIMESLIME_DATE_t`](#Library-Datatypes).
+[See more about `TIMESLIME_DATE_t`](#library-datatypes).
 
 ## Clocking In and Out
 To clock in and out of the time sheet, use the `TimeSlime_ClockIn(TIMESLIME_DATETIME_t)` and `TimeSlime_ClockOut(TIMESLIME_DATETIME_t)` functions.
 
 Each function accepts a `TIMESLIME_DATETIME_t` struct, which represents the date and time that the clock in, clock out should be performed on.
 
-[See more about `TIMESLIME_DATETIME_t`](#Library-Datatypes).
+[See more about `TIMESLIME_DATETIME_t`](#library-datatypes).
 
 
 ## Reports
@@ -103,7 +103,7 @@ will generate a report between the `start` and `end` dates.
 
 The result will be placed in the `TIMESLIME_REPORT_t` pointer, and this needs to be passed a pointer to that pointer.
 
-[See more about `TIMESLIME_DATE_t` and `TIMESLIME_REPORT_t`](#Library-Datatypes).
+[See more about `TIMESLIME_DATE_t` and `TIMESLIME_REPORT_t`](#library-datatypes).
 
 &nbsp;
 
