@@ -51,6 +51,7 @@ char*  TimeSlime_StatusCode(TIMESLIME_STATUS_t status);
 
 ### Time Slime Status
 `TIMESLIME_STATUS_t` is a type alias for `int`, and can be one of the following (defined in `timeslime.h`):
+
 |Value|Description|
 |-----|------------|
 |`TIMESLIME_OK`|No problems or errors|
