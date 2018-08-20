@@ -1,9 +1,0 @@
-{
-    "files.associations": {
-        "*.tests": "c",
-        "*.driver": "c",
-        "stdio.h": "c",
-        "args.h": "c",
-        "sqlite3.h": "c"
-    }
-}
