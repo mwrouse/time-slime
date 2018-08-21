@@ -120,10 +120,10 @@ When you are done, use `TimeSlime_FreeReport(TIMESLIME_REPORT_t**)` to clear all
 &nbsp;
 
 # Library Datatypes
+To avoid conflicts with other libraries, Time Slime defines custom datatypes for use with the library.
 
 ## Date and DateTime
-To avoid conflict with other libraries, Time Slime defines a custom struct for passing in
-dates and datetimes.
+The Date and DateTime structs are passed to several Time Slime functions.
 
 ```c
 struct TIMESLIME_DATE_STRUCT
