@@ -135,6 +135,7 @@ char* args_get_directory_of_executable(char *name)
     path[0] = '\0';
     char read_since_last_separator[100];
     read_since_last_separator[0] = '\0';
+    char separator;
 
     int i;
     int pos;
@@ -143,10 +144,11 @@ char* args_get_directory_of_executable(char *name)
     {
         if (name[i] == '/' || name[i] == '\\')
         {
+            separator = name[i];
             if (strlen(path) > 0)
             {
                 pos = strlen(path);
-                path[pos] = '\\';
+                path[pos] = separator;
                 path[pos + 1] = '\0';
             }
             strcat(path, read_since_last_separator);

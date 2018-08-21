@@ -126,14 +126,21 @@ char*  TimeSlime_StatusCode(TIMESLIME_STATUS_t status);
 #define __TO_VERSION_STRING(v) #v
 
 #ifdef TIMESLIME_VERSION
-#undef TIMESLIME_VERSION
+    #undef TIMESLIME_VERSION
 #endif
 #define TIMESLIME_VERSION       0.8
 
 #ifdef TIMESLIME_VERSION_STR
-#undef TIMESLIME_VERSION_STR
+    #undef TIMESLIME_VERSION_STR
 #endif
 #define TIMESLIME_VERSION_STR   _TO_VERSION_STRING(TIMESLIME_VERSION)
 
+#ifndef TIMESLIME_FILE_PATH_SEPARATOR
+    #ifdef _WIN32
+        #define TIMESLIME_FILE_PATH_SEPARATOR   "\\"
+    #else
+        #define TIMESLIME_FILE_PATH_SEPARATOR   "/"
+    #endif
+#endif
 
 #endif

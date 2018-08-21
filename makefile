@@ -1,6 +1,7 @@
 # Time Slime Make File
 CC = gcc
 CC_FLAGS = -g -Wall
+CC_ENDFLAGS = -lpthread
 
 BUILD_DIR = build
 SHELL_OUT = $(BUILD_DIR)/timeslime
@@ -17,6 +18,7 @@ ifeq ($(OS),Windows_NT)
 	RMDIR = cmd /C rmdir /S /Q
 else
 	RMDIR = rmdir -f -r
+	CC_ENDFLAGS += -ldl
 endif
 
 .PHONY: all
@@ -28,7 +30,7 @@ debug: all
 
 
 build_executable: $(LIBRARY_SOURCES) $(LIBRARY_HEADERS) $(SHELL_SOURCES)
-	@$(CC) $(CC_FLAGS) $(LIBRARY_SOURCES) $(SHELL_SOURCES) -o $(SHELL_OUT)
+	@$(CC) $(CC_FLAGS) $(LIBRARY_SOURCES) $(SHELL_SOURCES) -o $(SHELL_OUT) $(CC_ENDFLAGS)
 
 
 prep:

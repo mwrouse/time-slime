@@ -57,7 +57,8 @@ TIMESLIME_STATUS_t TimeSlime_Initialize(char directory_for_database[])
     database_file_path = malloc((strlen(directory_for_database) + 1 + strlen(TIMESLIME_DATABASE_FILE_NAME)) * sizeof(char)); /* + 1 for the slash */
     if (database_file_path == NULL)
         return TIMESLIME_UNKOWN_ERROR;
-    sprintf(database_file_path, "%s\\%s", directory_for_database, TIMESLIME_DATABASE_FILE_NAME); // Append the file name
+
+    sprintf(database_file_path, "%s%s%s", directory_for_database, TIMESLIME_FILE_PATH_SEPARATOR, TIMESLIME_DATABASE_FILE_NAME); // Append the file name
 
     // Create database if it doesn't exist
     int rc;
