@@ -15,11 +15,11 @@ There is also a [shell interface](#terminal-usage) for using only the library fr
 To use this as a library in another program, you need the `timeslime.h` and `timeslime.c` files.
 
 If your project already includes SQLITE, then replace this line, in `timeslime.h`:
-```C
+```c
 #include "third_party/sqlite3/sqlite3.h"
 ```
 With:
-```C
+```c
 #include "path/to/sqlite3.h"
 ```
 Pointing to your `sqlite3.h` file.
