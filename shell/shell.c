@@ -5,6 +5,9 @@
 #include "logger.h"
 #include "args/args.h"
 #include "string_literals.h"
+#ifndef _WIN32
+#include <limits.h>
+#endif
 
 static TIMESLIME_STATUS_t status;
 
@@ -18,11 +21,13 @@ static void display_help(void);
  */
 int main(int argc, char *argv[])
 {
+
     log_dull("==== Time Slime ====\n")
 
     // Parse command line arguments
     args_t parsed_args;
     parsed_args = args_parse(argc, argv);
+
 
     if (parsed_args.help)
     {
@@ -31,34 +36,35 @@ int main(int argc, char *argv[])
     else {
         // Initialize the TimeSlime library with path for database file
         char *base_folder = args_get_directory_of_executable(argv[0]);
+        if (base_folder == NULL)
+        {
+            printf("Unknown fatal error\n");
+            return 0;
+        }
+
         status = TimeSlime_Initialize(base_folder);
         if (status != TIMESLIME_OK)
         {
-            printf("An error occured: %s\n", TimeSlime_StatusCode(status));
+            printf("An error occured: %d => %s\n", status, TimeSlime_StatusCode(status));
             return -1;
         }
 
-
-        if (strcmp(parsed_args.action, ADD_ACTION) == 0)
+        if (parsed_args.action != NULL && strcmp(parsed_args.action, ADD_ACTION) == 0)
             perform_add_action(parsed_args);
 
-        else if (strcmp(parsed_args.action, CLOCK_ACTION) == 0)
+        else if (parsed_args.action != NULL && strcmp(parsed_args.action, CLOCK_ACTION) == 0)
             perform_clock_action(parsed_args);
 
-        else if (strcmp(parsed_args.action, REPORT_ACTION) == 0)
+        else if (parsed_args.action != NULL && strcmp(parsed_args.action, REPORT_ACTION) == 0)
             perform_report_action(parsed_args);
 
         if (status != TIMESLIME_OK)
-        {
             printf("Error: %s\n", TimeSlime_StatusCode(status));
-        }
 
         TimeSlime_Close();
         free(base_folder);
         base_folder = NULL;
     }
-
-
 
     return 0;
 }
@@ -148,8 +154,9 @@ static void perform_report_action(args_t args)
 
     if (args.modifier2 == NULL)
     {
-        log_error("'report' action needs another parameter, the end date");
-        return;
+        args.modifier2 = TODAY;
+        //log_error("'report' action needs another parameter, the end date");
+        //return;
     }
 
     date_t startDate = args_parse_date(args.modifier1);
@@ -161,19 +168,22 @@ static void perform_report_action(args_t args)
         return;
 
     // Verify that dates are in the correct order
-    if (
-            (endDate.month < startDate.month && endDate.year == startDate.year) || // Same year, but earlier month
-            (endDate.day < startDate.day && endDate.year == startDate.year && endDate.month == startDate.month) || // Same month and year, but earlier day
-            (endDate.year < startDate.year) // Earlier year
-        )
+    if (strcmp(startDate.str, TODAY) != 0 && strcmp(endDate.str, TODAY) != 0)
     {
-        log_error("Dates in wrong order");
-        return;
+        if (
+                (endDate.month < startDate.month && endDate.year == startDate.year) || // Same year, but earlier month
+                (endDate.day < startDate.day && endDate.year == startDate.year && endDate.month == startDate.month) || // Same month and year, but earlier day
+                (endDate.year < startDate.year) // Earlier year
+            )
+        {
+            log_error("Dates in wrong order");
+            return;
+        }
     }
 
+    TIMESLIME_REPORT_t *report;
     TIMESLIME_DATE_t start = { startDate.year, startDate.month, startDate.day };
     TIMESLIME_DATE_t end = { endDate.year, endDate.month, endDate.day };
-    TIMESLIME_REPORT_t *report;
     status = TimeSlime_GetReport(start, end, &report);
 
     log_dull("Time Slime report for %s to %s:", startDate.str, endDate.str);

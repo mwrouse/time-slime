@@ -149,7 +149,7 @@ Time Slime also defines some helpful directives to easily create these for the c
 
 ```c
 #define TIMESLIME_DATE_NOW         (TIMESLIME_DATE_t){ 0, 0, 0}
-#define TIMESLIME_TIME_NOW         (TIMESLIME_DATETIME_t){ 0, 0, 0, 0, 0 }
+#define TIMESLIME_TIME_NOW         (TIMESLIME_DATETIME_t){ 0, 0, 0, -1, -1 }
 ```
 
 ## Report
@@ -199,6 +199,14 @@ Once build, if you add the executable (in the `build` folder) to your system `PA
 ```
 
 > **IMPORTANT**: All dates must be formatted as either `YYYY-MM-DD` or `YYYY/MM/DD`
+
+&nbsp;
+
+# Todo
+- [ ] Better report formatting (done?)
+- [ ] Allow second parameter of a report to be "today"
+- [ ] Shell program to prompt user for choices if no parameters (or not all parameters) are given (but works on all systems)
+- [ ] Imrpove logging
 
 
 &nbsp;

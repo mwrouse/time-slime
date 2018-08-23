@@ -2,6 +2,7 @@
 #include "../string_literals.h"
 #include "../logger.h"
 
+
 args_t args_parse(int argc, char **argv)
 {
     // Copy the arguments
@@ -39,6 +40,7 @@ args_t args_parse(int argc, char **argv)
             result.modifier3 = args[3];
     }
 
+    free(args);
 
     return result;
 }
@@ -59,6 +61,9 @@ date_t args_parse_date(char *dateStr)
     date.day = 0;
     date.year = 0;
     strcpy(date.str, dateStr);
+
+    if (strcmp(dateStr, TODAY) == 0)
+        return date;
 
     char running[256] = "";
     int tmp = 0;
@@ -131,36 +136,66 @@ date_t args_parse_date(char *dateStr)
 
 char* args_get_directory_of_executable(char *name)
 {
-    char path[1000];
+    char passed_path[PATH_MAX];
+#ifndef _WIN32
+    if (realpath("/proc/self/exe", passed_path) == NULL)
+    {
+        printf("realpath error: %s\n", strerror(errno));
+        return NULL;
+    }
+#else
+    strcpy(passed_path, name);
+#endif
+
+    char path[PATH_MAX];
     path[0] = '\0';
-    char read_since_last_separator[100];
+
+    char read_since_last_separator[PATH_MAX];
+#ifdef _WIN32
     read_since_last_separator[0] = '\0';
+#else
+    read_since_last_separator[0] = '/';
+    read_since_last_separator[1] = '\0';
+#endif
     char separator;
 
     int i;
     int pos;
-    int len = strlen(name);
+    int len = strlen(passed_path);
     for (i = 0; i < len; i++)
     {
-        if (name[i] == '/' || name[i] == '\\')
+        if (passed_path[i] == '/' || passed_path[i] == '\\')
         {
-            separator = name[i];
-            if (strlen(path) > 0)
+            separator = passed_path[i];
+            if (strlen(path) > 1)
             {
+                // Append the separator
                 pos = strlen(path);
                 path[pos] = separator;
                 path[pos + 1] = '\0';
             }
-            strcat(path, read_since_last_separator);
-            read_since_last_separator[0] = '\0';
+
+            // Append everything read since last separator
+            if (strlen(read_since_last_separator) > 0)
+            {
+                strcat(path, read_since_last_separator);
+                read_since_last_separator[0] = '\0';
+            }
         }
         else {
+            // Add to the temp string until we reach the next separator
             pos = strlen(read_since_last_separator);
-            read_since_last_separator[pos] = name[i];
+            read_since_last_separator[pos] = passed_path[i];
             read_since_last_separator[pos + 1] = '\0';
         }
     }
+
+    // Return a pointer to the result
     char *result = malloc(sizeof(path));
+    if (result == NULL)
+        return NULL;
+
     strcpy(result, path);
+
     return result;
 }

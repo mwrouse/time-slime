@@ -59,7 +59,6 @@ TIMESLIME_STATUS_t TimeSlime_Initialize(char directory_for_database[])
         return TIMESLIME_UNKOWN_ERROR;
 
     sprintf(database_file_path, "%s%s%s", directory_for_database, TIMESLIME_FILE_PATH_SEPARATOR, TIMESLIME_DATABASE_FILE_NAME); // Append the file name
-
     // Create database if it doesn't exist
     int rc;
     rc = sqlite3_open(database_file_path, &db);
@@ -77,7 +76,6 @@ TIMESLIME_STATUS_t TimeSlime_Initialize(char directory_for_database[])
     int i;
     for (i = 0; i < result_array_size; i++)
         database_results[i] = NULL;
-
 
     return _TimeSlime_CreateTables();
 }
@@ -141,18 +139,9 @@ TIMESLIME_STATUS_t TimeSlime_AddHours(float hours, TIMESLIME_DATE_t date)
     strcpy(entry.ClockInTime, "NULL");
     strcpy(entry.ClockOutTime, "NULL");
 
-    if ((date.year == 0) || (date.month == 0) || (date.day == 0))
-    {
-        // Use current database date
-        strcpy(entry.HoursAddedDate, "DATE('now', 'localtime')");
-    }
-    else
-    {
-        // Use user-specified date
-        char *dateStr = _TimeSlime_Date2Str(date);
-        strcpy(entry.HoursAddedDate, dateStr);
-        free(dateStr);
-    }
+    char *dateStr = _TimeSlime_Date2Str(date);
+    strcpy(entry.HoursAddedDate, dateStr);
+    free(dateStr);
 
     return _TimeSlime_InsertEntry(&entry);
 }
@@ -182,18 +171,9 @@ TIMESLIME_STATUS_t TimeSlime_ClockIn(TIMESLIME_DATETIME_t time)
     strcpy(entry.HoursAddedDate, "NULL");
     strcpy(entry.ClockOutTime, "NULL");
 
-    if ((time.year == 0) || (time.month == 0) || (time.day == 0) || (time.hour == 0) || (time.minute == 0))
-    {
-        // Use current database date
-        strcpy(entry.ClockInTime, "DATETIME('now', 'localtime')");
-    }
-    else
-    {
-        // Use user-specified date
-        char *timeStr = _TimeSlime_Time2Str(time);
-        strcpy(entry.ClockInTime, timeStr);
-        free(timeStr);
-    }
+    char *timeStr = _TimeSlime_Time2Str(time);
+    strcpy(entry.ClockInTime, timeStr);
+    free(timeStr);
 
     return _TimeSlime_InsertEntry(&entry);
 }
@@ -219,22 +199,9 @@ TIMESLIME_STATUS_t TimeSlime_ClockOut(TIMESLIME_DATETIME_t time)
     int id = number_of_results - 1; // Last row item ID
 
     // Prep for update
-    char tmp[TIMESLIME_DATETIME_STR_LENGTH];
-    strcpy(tmp, database_results[id]->ClockInTime);
-    sprintf(database_results[id]->ClockInTime, "strftime('%s')", tmp);
-
-    if ((time.year == 0) || (time.month == 0) || (time.day == 0) || (time.hour == 0) || (time.minute == 0))
-    {
-        // Use current database date
-        strcpy(database_results[id]->ClockOutTime, "DATETIME('now', 'localtime')");
-    }
-    else
-    {
-        // Use user-specified date
-        char *timeStr = _TimeSlime_Time2Str(time);
-        sprintf(database_results[id]->ClockOutTime, "strftime('%s')", timeStr);
-        free(timeStr);
-    }
+    char *timeStr = _TimeSlime_Time2Str(time);
+    strcpy(database_results[id]->ClockOutTime, timeStr);
+    free(timeStr);
 
     return _TimeSlime_UpdateEntry(database_results[id]);
 }
@@ -270,7 +237,7 @@ TIMESLIME_STATUS_t TimeSlime_GetReport(TIMESLIME_DATE_t start, TIMESLIME_DATE_t 
     sprintf(sql, "SELECT " \
                     "ID, HoursAdded, HoursAddedDate, ClockInTime, ClockOutTime, " \
                     "SUM(case when HoursAdded <> 0.0 then HoursAdded else ((JULIANDAY(ClockOutTime) - JULIANDAY(ClockInTime)) * 24) end) AS TotalHours, " \
-                    "case when HoursAddedDate IS NOT NULL then date(HoursAddedDate) else date(ClockInTime) end AS TimeSheetDate " \
+                    "case when HoursAddedDate IS NOT NULL then DATE(HoursAddedDate) else DATE(ClockInTime) end AS TimeSheetDate " \
                 "FROM TimeSheet " \
                 "WHERE (%s) AND (TimeSheetDate >= %s AND TimeSheetDate <= %s) " \
                 "GROUP BY TimeSheetDate " \
@@ -506,10 +473,10 @@ static TIMESLIME_STATUS_t _TimeSlime_VerifyTimestamp(TIMESLIME_DATETIME_t time)
     if (dateResult != TIMESLIME_OK)
         return dateResult;
 
-    if (time.hour < 0 || time.hour > 24)
+    if (time.hour < -1 || time.hour > 24)
         return TIMESLIME_INVALID_HOUR;
 
-    if (time.minute < 0 || time.minute > 60)
+    if (time.minute < -1 || time.minute > 60)
         return TIMESLIME_INVALID_MINUTE;
 
     return TIMESLIME_OK;
@@ -534,14 +501,19 @@ static TIMESLIME_STATUS_t _TimeSlime_VerifyDate(TIMESLIME_DATE_t date)
 static char* _TimeSlime_Time2Str(TIMESLIME_DATETIME_t time)
 {
     char *result = (char*)malloc(TIMESLIME_DATETIME_STR_LENGTH * sizeof(char));
-    sprintf(result, "datetime('%04d-%02d-%02d %02d:%02d:0')", time.year, time.month, time.day, time.hour, time.minute);
+    if (_TIMESLIME_IS_TIME_NOW(time))
+        strcpy(result, "DATETIME('now', 'localtime')");
+    else
+        sprintf(result, "DATETIME('%04d-%02d-%02d %02d:%02d:0')", time.year, time.month, time.day, time.hour, time.minute);
     return result;
 }
 
 static char* _TimeSlime_Date2Str(TIMESLIME_DATE_t date)
 {
     char *result = (char*)malloc(TIMESLIME_DATETIME_STR_LENGTH * sizeof(char));
-    sprintf(result, "date('%04d-%02d-%02d')", date.year, date.month, date.day);
-
+    if (_TIMESLIME_IS_DATE_TODAY(date))
+        strcpy(result, "DATE('now', 'localtime')");
+    else
+        sprintf(result, "DATE('%04d-%02d-%02d')", date.year, date.month, date.day);
     return result;
 }

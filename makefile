@@ -16,8 +16,10 @@ MKDIR = mkdir
 
 ifeq ($(OS),Windows_NT)
 	RMDIR = cmd /C rmdir /S /Q
+	CC_FLAGS += -D WINDOWS
 else
 	RMDIR = rmdir -f -r
+	CC_FLAGS += -D NOTWINDOWS
 	CC_ENDFLAGS += -ldl
 endif
 

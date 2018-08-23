@@ -4,6 +4,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef _WIN32
+#include <limits.h>
+#include <errno.h>
+#endif
+
 
 #define ARGS_False   0
 #define ARGS_True    1
@@ -36,4 +41,8 @@ date_t args_parse_date(char *date);
 char* args_get_directory_of_executable(char *name);
 
 
+
+#ifndef PATH_MAX
+#define PATH_MAX 1000
+#endif
 #endif

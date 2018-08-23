@@ -15,7 +15,7 @@
 /* Constants */
 /* These are used when you want to use the current date */
 #define TIMESLIME_DATE_NOW         (TIMESLIME_DATE_t){ 0, 0, 0}
-#define TIMESLIME_TIME_NOW         (TIMESLIME_DATETIME_t){ 0, 0, 0, 0, 0 }
+#define TIMESLIME_TIME_NOW         (TIMESLIME_DATETIME_t){ 0, 0, 0, -1, -1 }
 
 #ifndef TIMESLIME_DATABASE_FILE_NAME
 #define TIMESLIME_DATABASE_FILE_NAME    "timeslime.db"
@@ -128,7 +128,7 @@ char*  TimeSlime_StatusCode(TIMESLIME_STATUS_t status);
 #ifdef TIMESLIME_VERSION
     #undef TIMESLIME_VERSION
 #endif
-#define TIMESLIME_VERSION       0.8
+#define TIMESLIME_VERSION       0.9
 
 #ifdef TIMESLIME_VERSION_STR
     #undef TIMESLIME_VERSION_STR
@@ -142,5 +142,9 @@ char*  TimeSlime_StatusCode(TIMESLIME_STATUS_t status);
         #define TIMESLIME_FILE_PATH_SEPARATOR   "/"
     #endif
 #endif
+
+/* Date helper functions */
+#define _TIMESLIME_IS_DATE_TODAY(date) (date.year == 0 && date.month == 0 && date.day == 0)
+#define _TIMESLIME_IS_TIME_NOW(time) (time.year == 0 && time.month == 0 && time.day == 0 && time.hour == -1 && time.minute == -1)
 
 #endif
