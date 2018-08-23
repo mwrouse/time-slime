@@ -272,7 +272,7 @@ TIMESLIME_STATUS_t TimeSlime_GetReport(TIMESLIME_DATE_t start, TIMESLIME_DATE_t 
                     "SUM(case when HoursAdded <> 0.0 then HoursAdded else ((JULIANDAY(ClockOutTime) - JULIANDAY(ClockInTime)) * 24) end) AS TotalHours, " \
                     "case when HoursAddedDate IS NOT NULL then date(HoursAddedDate) else date(ClockInTime) end AS TimeSheetDate " \
                 "FROM TimeSheet " \
-                "WHERE (%s) AND (TimeSheetDate >= date('%s') AND TimeSheetDate <= date('%s')) " \
+                "WHERE (%s) AND (TimeSheetDate >= %s AND TimeSheetDate <= %s) " \
                 "GROUP BY TimeSheetDate " \
                 "ORDER BY TimeSheetDate ASC",
             __TS_QRY_GET_ALL_ENTIRES,
@@ -534,14 +534,14 @@ static TIMESLIME_STATUS_t _TimeSlime_VerifyDate(TIMESLIME_DATE_t date)
 static char* _TimeSlime_Time2Str(TIMESLIME_DATETIME_t time)
 {
     char *result = (char*)malloc(TIMESLIME_DATETIME_STR_LENGTH * sizeof(char));
-    sprintf(result, "%04d-%02d-%02d %02d:%02d:0", time.year, time.month, time.day, time.hour, time.minute);
+    sprintf(result, "datetime('%04d-%02d-%02d %02d:%02d:0')", time.year, time.month, time.day, time.hour, time.minute);
     return result;
 }
 
 static char* _TimeSlime_Date2Str(TIMESLIME_DATE_t date)
 {
     char *result = (char*)malloc(TIMESLIME_DATETIME_STR_LENGTH * sizeof(char));
-    sprintf(result, "%04d-%02d-%02d", date.year, date.month, date.day);
+    sprintf(result, "date('%04d-%02d-%02d')", date.year, date.month, date.day);
 
     return result;
 }

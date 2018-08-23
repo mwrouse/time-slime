@@ -171,20 +171,20 @@ static void perform_report_action(args_t args)
         return;
     }
 
-
-    log_info("Running report between %s and %s", startDate.str, endDate.str);
-
     TIMESLIME_DATE_t start = { startDate.year, startDate.month, startDate.day };
     TIMESLIME_DATE_t end = { endDate.year, endDate.month, endDate.day };
     TIMESLIME_REPORT_t *report;
     status = TimeSlime_GetReport(start, end, &report);
 
+    log_dull("Time Slime report for %s to %s:", startDate.str, endDate.str);
+
     int i;
     for (i = 0; i < report->NumberOfEntries; i++)
     {
-        printf("%s: %0.2f\n", report->Entries[i].Date, report->Entries[i].Hours);
+        printf("\t%s: %0.2f\n", report->Entries[i].Date, report->Entries[i].Hours);
     }
 
+    printf("\n");
     TimeSlime_FreeReport(&report);
 }
 
