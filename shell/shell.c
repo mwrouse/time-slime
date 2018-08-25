@@ -194,6 +194,7 @@ static void perform_report_action(args_t args)
         printf("\t%s: %0.2f\n", report->Entries[i].Date, report->Entries[i].Hours);
     }
 
+    printf("\nTotal Hours: %0.2f\n", report->TotalHours);
     printf("\n");
     TimeSlime_FreeReport(&report);
 }

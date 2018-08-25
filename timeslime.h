@@ -81,6 +81,7 @@ typedef struct TIMESLIME_REPORT_ENTRY_STRUCT TIMESLIME_REPORT_ENTRY_t;
 struct TIMESLIME_REPORT_STRUCT
 {
     int NumberOfEntries;
+    float TotalHours;
     TIMESLIME_REPORT_ENTRY_t Entries[];
 };
 typedef struct TIMESLIME_REPORT_STRUCT TIMESLIME_REPORT_t;

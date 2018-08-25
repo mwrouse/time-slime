@@ -262,11 +262,13 @@ TIMESLIME_STATUS_t TimeSlime_GetReport(TIMESLIME_DATE_t start, TIMESLIME_DATE_t 
     if (report == NULL)
         return TIMESLIME_UNKOWN_ERROR;
 
+    report->TotalHours = 0;
     report->NumberOfEntries = number_of_results;
     for (i = 0; i < number_of_results; i++)
     {
         // Build report entries
         report->Entries[i].Hours = database_results[i]->TotalHours;
+        report->TotalHours += report->Entries[i].Hours;
         strcpy(report->Entries[i].Date, database_results[i]->TimeSheetDate);
     }
 
